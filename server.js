@@ -8,7 +8,7 @@ const app = express();
 
 // ─── CORS — allow Vercel frontend + local dev ─────────────────────────
 const allowedOrigins = [
-  'https://drix-tech-talent.vercel.app',   // Vercel default URL
+  'https://drix-tech-talenthub.vercel.app',   // Vercel default URL
   process.env.FRONTEND_URL,                 // your custom domain if any
   'http://localhost:3000',
   'http://localhost:5500',
