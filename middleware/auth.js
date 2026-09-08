@@ -1,29 +1,45 @@
 const jwt = require('jsonwebtoken');
 
+// Fellow auth middleware
 const authMiddleware = (req, res, next) => {
-  const token = req.cookies?.token || req.headers.authorization?.split(' ')[1];
-  if (!token) return res.status(401).json({ error: 'Unauthorized' });
   try {
+    // Read from Authorization header: "Bearer <token>"
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.startsWith('Bearer ')
+      ? authHeader.slice(7)
+      : null;
+
+    if (!token) return res.status(401).json({ error: 'Not authenticated.' });
+
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (decoded.role !== 'fellow') return res.status(403).json({ error: 'Access denied.' });
+
     req.user = decoded;
     next();
-  } catch {
-    res.status(401).json({ error: 'Invalid or expired token' });
+  } catch (err) {
+    return res.status(401).json({ error: 'Invalid or expired session. Please login again.' });
   }
 };
 
+// Admin auth middleware
 const adminMiddleware = (req, res, next) => {
-  const token = req.cookies?.adminToken || req.headers.authorization?.split(' ')[1];
-  if (!token) return res.status(401).json({ error: 'Unauthorized' });
   try {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.startsWith('Bearer ')
+      ? authHeader.slice(7)
+      : null;
+
+    if (!token) return res.status(401).json({ error: 'Not authenticated.' });
+
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     if (!['admin', 'super_admin', 'moderator'].includes(decoded.role)) {
-      return res.status(403).json({ error: 'Forbidden' });
+      return res.status(403).json({ error: 'Admin access required.' });
     }
+
     req.admin = decoded;
     next();
-  } catch {
-    res.status(401).json({ error: 'Invalid or expired token' });
+  } catch (err) {
+    return res.status(401).json({ error: 'Invalid or expired session. Please login again.' });
   }
 };
 

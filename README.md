@@ -12,7 +12,7 @@ Node.js + Express + Supabase
    - SUPABASE_URL
    - SUPABASE_SERVICE_KEY
    - JWT_SECRET
-   - FRONTEND_URL (your Vercel URL e.g. https://drix-tech-talent.vercel.app)
+   - FRONTEND_URL=https://drix-tech-talenthub.vercel.app
    - NODE_ENV=production
 
 ## Local dev
