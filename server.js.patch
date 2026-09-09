@@ -1,0 +1,3 @@
+// Add these new page routes to server.js
+app.get('/admin/messages', (req, res) => res.sendFile(path.join(FRONTEND, 'pages', 'admin-messages.html')));
+app.get('/dashboard/messages', (req, res) => res.sendFile(path.join(FRONTEND, 'pages', 'dashboard-messages.html')));

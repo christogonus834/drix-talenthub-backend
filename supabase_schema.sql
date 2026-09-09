@@ -341,3 +341,152 @@ ALTER TABLE certificates ADD COLUMN IF NOT EXISTS issued_manually BOOLEAN DEFAUL
 -- Fix admin password (Admin@Drix2025) — run if needed
 -- UPDATE admins SET password_hash = '$2a$12$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2uheWG/igi.'
 -- WHERE email = 'admin@drixtechtalent.com';
+
+
+-- ============================================================
+-- V2 SCHEMA — Run this block in Supabase SQL Editor
+-- ============================================================
+
+-- MODULES (groups of lessons within a track)
+CREATE TABLE IF NOT EXISTS modules (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  track_id UUID REFERENCES tracks(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  description TEXT,
+  order_index INTEGER DEFAULT 0,
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE modules DISABLE ROW LEVEL SECURITY;
+CREATE INDEX IF NOT EXISTS idx_modules_track ON modules(track_id);
+
+-- LESSONS (content within a module)
+CREATE TABLE IF NOT EXISTS lessons (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  module_id UUID REFERENCES modules(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  description TEXT,
+  type TEXT DEFAULT 'video' CHECK (type IN ('video','pdf','document','article','audio','quiz')),
+  content_url TEXT,
+  content_text TEXT,
+  duration_minutes INTEGER DEFAULT 0,
+  points_reward INTEGER DEFAULT 10,
+  order_index INTEGER DEFAULT 0,
+  is_free_preview BOOLEAN DEFAULT FALSE,
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE lessons DISABLE ROW LEVEL SECURITY;
+CREATE INDEX IF NOT EXISTS idx_lessons_module ON lessons(module_id);
+
+-- FELLOW LESSON PROGRESS
+CREATE TABLE IF NOT EXISTS fellow_lesson_progress (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  fellow_id UUID REFERENCES fellows(id) ON DELETE CASCADE,
+  lesson_id UUID REFERENCES lessons(id) ON DELETE CASCADE,
+  started_at TIMESTAMPTZ,
+  completed BOOLEAN DEFAULT FALSE,
+  completed_at TIMESTAMPTZ,
+  UNIQUE(fellow_id, lesson_id)
+);
+ALTER TABLE fellow_lesson_progress DISABLE ROW LEVEL SECURITY;
+
+-- ASSIGNMENTS
+CREATE TABLE IF NOT EXISTS assignments (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  module_id UUID REFERENCES modules(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  description TEXT,
+  instructions TEXT,
+  due_days INTEGER DEFAULT 7,
+  max_score INTEGER DEFAULT 100,
+  points_reward INTEGER DEFAULT 20,
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE assignments DISABLE ROW LEVEL SECURITY;
+
+-- ASSIGNMENT SUBMISSIONS
+CREATE TABLE IF NOT EXISTS assignment_submissions (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  assignment_id UUID REFERENCES assignments(id) ON DELETE CASCADE,
+  fellow_id UUID REFERENCES fellows(id) ON DELETE CASCADE,
+  content TEXT,
+  file_url TEXT,
+  submitted_at TIMESTAMPTZ DEFAULT NOW(),
+  status TEXT DEFAULT 'submitted' CHECK (status IN ('submitted','graded','returned')),
+  grade INTEGER,
+  feedback TEXT,
+  graded_at TIMESTAMPTZ,
+  UNIQUE(assignment_id, fellow_id)
+);
+ALTER TABLE assignment_submissions DISABLE ROW LEVEL SECURITY;
+
+-- EXAMS
+CREATE TABLE IF NOT EXISTS exams (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  track_id UUID REFERENCES tracks(id) ON DELETE CASCADE UNIQUE,
+  title TEXT NOT NULL,
+  description TEXT,
+  instructions TEXT,
+  duration_minutes INTEGER DEFAULT 60,
+  pass_score INTEGER DEFAULT 70,
+  points_reward INTEGER DEFAULT 50,
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE exams DISABLE ROW LEVEL SECURITY;
+
+-- EXAM QUESTIONS
+CREATE TABLE IF NOT EXISTS exam_questions (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  exam_id UUID REFERENCES exams(id) ON DELETE CASCADE,
+  question TEXT NOT NULL,
+  options JSONB, -- ["Option A", "Option B", "Option C", "Option D"]
+  correct_answer TEXT NOT NULL,
+  points INTEGER DEFAULT 1,
+  order_index INTEGER DEFAULT 0
+);
+ALTER TABLE exam_questions DISABLE ROW LEVEL SECURITY;
+
+-- EXAM ATTEMPTS
+CREATE TABLE IF NOT EXISTS exam_attempts (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  exam_id UUID REFERENCES exams(id) ON DELETE CASCADE,
+  fellow_id UUID REFERENCES fellows(id) ON DELETE CASCADE,
+  answers JSONB,
+  score INTEGER,
+  passed BOOLEAN DEFAULT FALSE,
+  started_at TIMESTAMPTZ DEFAULT NOW(),
+  completed_at TIMESTAMPTZ
+);
+ALTER TABLE exam_attempts DISABLE ROW LEVEL SECURITY;
+
+-- MESSAGES (fellow to admin)
+CREATE TABLE IF NOT EXISTS messages (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  fellow_id UUID REFERENCES fellows(id) ON DELETE CASCADE,
+  subject TEXT DEFAULT 'General Enquiry',
+  message TEXT NOT NULL,
+  status TEXT DEFAULT 'unread' CHECK (status IN ('unread','read','replied')),
+  sent_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE messages DISABLE ROW LEVEL SECURITY;
+
+-- MESSAGE REPLIES (admin to fellow)
+CREATE TABLE IF NOT EXISTS message_replies (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  message_id UUID REFERENCES messages(id) ON DELETE CASCADE,
+  admin_id UUID REFERENCES admins(id),
+  reply TEXT NOT NULL,
+  replied_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE message_replies DISABLE ROW LEVEL SECURITY;
+
+-- FUNCTION: Safely increment fellow points
+CREATE OR REPLACE FUNCTION increment_points(fellow_id UUID, amount INTEGER)
+RETURNS void AS $$
+BEGIN
+  UPDATE fellows SET points = points + amount WHERE id = fellow_id;
+END;
+$$ LANGUAGE plpgsql;
