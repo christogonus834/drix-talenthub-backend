@@ -490,3 +490,7 @@ BEGIN
   UPDATE fellows SET points = points + amount WHERE id = fellow_id;
 END;
 $$ LANGUAGE plpgsql;
+
+-- ── V2.1 Updates — run in Supabase SQL Editor ──
+ALTER TABLE certificate_requests ADD COLUMN IF NOT EXISTS score INTEGER DEFAULT 0;
+ALTER TABLE certificates ADD COLUMN IF NOT EXISTS score INTEGER DEFAULT 0;
