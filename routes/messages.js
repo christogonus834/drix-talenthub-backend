@@ -99,3 +99,23 @@ router.patch('/admin/:messageId/read', adminMiddleware, async (req, res) => {
 });
 
 module.exports = router;
+
+// ── PUBLIC: Contact form (no auth needed) ────────────────────────────
+router.post('/contact', async (req, res) => {
+  try {
+    const { name, email, subject, message } = req.body;
+    if (!name || !email || !message) return res.status(400).json({ error: 'Name, email and message are required.' });
+
+    await supabase.from('messages').insert({
+      fellow_id: null,
+      subject: `[Contact Form] ${subject || 'General Enquiry'} — from ${name} <${email}>`,
+      message: `From: ${name}\nEmail: ${email}\n\n${message}`,
+      status: 'unread',
+      sent_at: new Date()
+    });
+
+    res.json({ success: true });
+  } catch(err) {
+    res.status(500).json({ error: 'Failed to send message.' });
+  }
+});

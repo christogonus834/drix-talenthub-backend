@@ -494,3 +494,21 @@ $$ LANGUAGE plpgsql;
 -- ── V2.1 Updates — run in Supabase SQL Editor ──
 ALTER TABLE certificate_requests ADD COLUMN IF NOT EXISTS score INTEGER DEFAULT 0;
 ALTER TABLE certificates ADD COLUMN IF NOT EXISTS score INTEGER DEFAULT 0;
+
+-- ── Audit Logs (security audit trail) ──
+CREATE TABLE IF NOT EXISTS audit_logs (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  action TEXT NOT NULL,
+  user_id UUID,
+  user_type TEXT,
+  ip_address TEXT,
+  user_agent TEXT,
+  details TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE audit_logs DISABLE ROW LEVEL SECURITY;
+CREATE INDEX IF NOT EXISTS idx_audit_logs_user ON audit_logs(user_id);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_created ON audit_logs(created_at);
+
+-- Allow null fellow_id for public contact form messages
+ALTER TABLE messages ALTER COLUMN fellow_id DROP NOT NULL;
