@@ -98,8 +98,6 @@ router.patch('/admin/:messageId/read', adminMiddleware, async (req, res) => {
   }
 });
 
-module.exports = router;
-
 // ── PUBLIC: Contact form (no auth needed) ────────────────────────────
 router.post('/contact', async (req, res) => {
   try {
@@ -119,3 +117,5 @@ router.post('/contact', async (req, res) => {
     res.status(500).json({ error: 'Failed to send message.' });
   }
 });
+
+module.exports = router;

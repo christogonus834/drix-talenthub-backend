@@ -512,3 +512,24 @@ CREATE INDEX IF NOT EXISTS idx_audit_logs_created ON audit_logs(created_at);
 
 -- Allow null fellow_id for public contact form messages
 ALTER TABLE messages ALTER COLUMN fellow_id DROP NOT NULL;
+
+-- ── V2.2 Updates — run in Supabase SQL Editor ──
+-- BLOG CMS
+CREATE TABLE IF NOT EXISTS blog_posts (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  title TEXT NOT NULL,
+  slug TEXT UNIQUE NOT NULL,
+  excerpt TEXT,
+  content TEXT NOT NULL,           -- Markdown source, rendered client-side
+  cover_image_url TEXT,
+  tag TEXT DEFAULT 'General',      -- e.g. Career, Announcement, Cybersecurity
+  author_name TEXT DEFAULT 'Drix Team',
+  status TEXT DEFAULT 'draft' CHECK (status IN ('draft','published')),
+  read_minutes INTEGER DEFAULT 5,
+  published_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE blog_posts DISABLE ROW LEVEL SECURITY;
+CREATE INDEX IF NOT EXISTS idx_blog_posts_status_pub ON blog_posts(status, published_at DESC);
+CREATE INDEX IF NOT EXISTS idx_blog_posts_slug ON blog_posts(slug);

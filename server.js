@@ -35,6 +35,7 @@ app.use('/api/certificates',       require('./routes/certificates'));
 app.use('/api/admin/certificates', require('./routes/certificates'));
 app.use('/api/modules',            require('./routes/modules'));
 app.use('/api/messages',           require('./routes/messages'));
+app.use('/api/blog',               require('./routes/blog'));
 app.use('/api/upload',             uploadLimit, require('./routes/upload'));
 
 // ─── HEALTH ────────────────────────────────────────────────────────────
