@@ -513,23 +513,39 @@ CREATE INDEX IF NOT EXISTS idx_audit_logs_created ON audit_logs(created_at);
 -- Allow null fellow_id for public contact form messages
 ALTER TABLE messages ALTER COLUMN fellow_id DROP NOT NULL;
 
--- ── V2.2 Updates — run in Supabase SQL Editor ──
--- BLOG CMS
+-- Blog posts table
 CREATE TABLE IF NOT EXISTS blog_posts (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   title TEXT NOT NULL,
   slug TEXT UNIQUE NOT NULL,
   excerpt TEXT,
-  content TEXT NOT NULL,           -- Markdown source, rendered client-side
-  cover_image_url TEXT,
-  tag TEXT DEFAULT 'General',      -- e.g. Career, Announcement, Cybersecurity
-  author_name TEXT DEFAULT 'Drix Team',
-  status TEXT DEFAULT 'draft' CHECK (status IN ('draft','published')),
-  read_minutes INTEGER DEFAULT 5,
-  published_at TIMESTAMPTZ,
+  content TEXT,
+  tag TEXT DEFAULT 'General',
+  author TEXT DEFAULT 'Drix Team',
+  read_time INTEGER DEFAULT 5,
+  cover_image TEXT,
+  published BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 ALTER TABLE blog_posts DISABLE ROW LEVEL SECURITY;
-CREATE INDEX IF NOT EXISTS idx_blog_posts_status_pub ON blog_posts(status, published_at DESC);
-CREATE INDEX IF NOT EXISTS idx_blog_posts_slug ON blog_posts(slug);
+
+-- Allow null fellow_id for contact form
+ALTER TABLE messages ALTER COLUMN fellow_id DROP NOT NULL;
+
+-- Certificate score columns
+ALTER TABLE certificate_requests ADD COLUMN IF NOT EXISTS score INTEGER DEFAULT 0;
+ALTER TABLE certificates ADD COLUMN IF NOT EXISTS score INTEGER DEFAULT 0;
+
+-- Audit logs
+CREATE TABLE IF NOT EXISTS audit_logs (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  action TEXT NOT NULL,
+  user_id UUID,
+  user_type TEXT,
+  ip_address TEXT,
+  user_agent TEXT,
+  details TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE audit_logs DISABLE ROW LEVEL SECURITY;
