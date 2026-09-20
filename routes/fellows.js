@@ -145,10 +145,6 @@ router.get('/courses', authMiddleware, async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch courses.' });
   }
 });
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch courses.' });
-  }
-});
 
 // Mark course complete
 router.post('/courses/:id/complete', authMiddleware, async (req, res) => {
