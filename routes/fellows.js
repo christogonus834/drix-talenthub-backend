@@ -86,7 +86,9 @@ router.post('/community', authMiddleware, async (req, res) => {
   }
 });
 
-// Get courses for fellow's track
+// Get all lessons across the fellow's track, with real completion progress
+// (sources from modules → lessons → fellow_lesson_progress, not the old
+// legacy 'courses' table which is no longer written to by the admin UI)
 router.get('/courses', authMiddleware, async (req, res) => {
   try {
     const { data: fellow } = await supabase
@@ -95,22 +97,54 @@ router.get('/courses', authMiddleware, async (req, res) => {
       .eq('id', req.user.id)
       .single();
 
-    const { data: courses } = await supabase
-      .from('courses')
-      .select('*')
+    if (!fellow?.track_id) return res.json([]);
+
+    const { data: modules } = await supabase
+      .from('modules')
+      .select('id, order_index, lessons(id, title, type, duration_minutes, points_reward, order_index)')
       .eq('track_id', fellow.track_id)
       .eq('is_active', true)
       .order('order_index');
 
+    // Flatten lessons across all modules, keeping module then lesson order
+    const allLessons = [];
+    (modules || [])
+      .sort((a, b) => (a.order_index || 0) - (b.order_index || 0))
+      .forEach(m => {
+        (m.lessons || [])
+          .sort((a, b) => (a.order_index || 0) - (b.order_index || 0))
+          .forEach(l => allLessons.push(l));
+      });
+
+    if (!allLessons.length) return res.json([]);
+
+    const lessonIds = allLessons.map(l => l.id);
     const { data: progress } = await supabase
-      .from('fellow_progress')
-      .select('*')
-      .eq('fellow_id', req.user.id);
+      .from('fellow_lesson_progress')
+      .select('lesson_id, completed, completed_at')
+      .eq('fellow_id', req.user.id)
+      .in('lesson_id', lessonIds);
 
     const progressMap = {};
-    progress?.forEach(p => { progressMap[p.course_id] = p; });
+    (progress || []).forEach(p => { progressMap[p.lesson_id] = p; });
 
-    res.json(courses?.map(c => ({ ...c, progress: progressMap[c.id] || null })));
+    const result = allLessons.map(l => ({
+      id: l.id,
+      title: l.title,
+      resource_type: l.type,
+      duration_minutes: l.duration_minutes || 0,
+      points_reward: l.points_reward || 0,
+      progress: progressMap[l.id]
+        ? { completed: progressMap[l.id].completed, completed_at: progressMap[l.id].completed_at }
+        : null
+    }));
+
+    res.json(result);
+  } catch (err) {
+    console.error('Fetch courses error:', err);
+    res.status(500).json({ error: 'Failed to fetch courses.' });
+  }
+});
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch courses.' });
   }

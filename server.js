@@ -33,6 +33,7 @@ app.use('/api/admin/certificates', require('./routes/certificates'));
 app.use('/api/modules',            require('./routes/modules'));
 app.use('/api/messages',           require('./routes/messages'));
 app.use('/api/blog',               require('./routes/blog'));
+app.use('/api/ai',                 require('./routes/ai'));
 app.use('/api/upload',             uploadLimit, require('./routes/upload'));
 
 app.get('/health', (req, res) => res.json({ status: 'ok', version: '2.2.0' }));

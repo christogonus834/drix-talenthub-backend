@@ -256,30 +256,67 @@ router.get('/lesson/:lessonId', authMiddleware, async (req, res) => {
 router.post('/lesson/:lessonId/complete', authMiddleware, async (req, res) => {
   try {
     const fellowId = req.user.id;
-    const { data: lesson } = await supabase
-      .from('lessons').select('points_reward').eq('id', req.params.lessonId).single();
+    const lessonId = req.params.lessonId;
 
-    await supabase.from('fellow_lesson_progress').upsert({
-      fellow_id: fellowId,
-      lesson_id: req.params.lessonId,
-      completed: true,
-      completed_at: new Date()
-    }, { onConflict: 'fellow_id,lesson_id' });
+    // Check if this lesson was already completed, so we never award points twice
+    const { data: existing } = await supabase
+      .from('fellow_lesson_progress')
+      .select('completed')
+      .eq('fellow_id', fellowId)
+      .eq('lesson_id', lessonId)
+      .single();
 
-    // Award points
-    if (lesson?.points_reward) {
-      await supabase.rpc('increment_points', {
+    const alreadyCompleted = existing?.completed === true;
+
+    const { error: upsertError } = await supabase
+      .from('fellow_lesson_progress')
+      .upsert({
         fellow_id: fellowId,
-        amount: lesson.points_reward
-      }).catch(async () => {
-        const { data: f } = await supabase.from('fellows').select('points').eq('id', fellowId).single();
-        await supabase.from('fellows').update({ points: (f?.points || 0) + lesson.points_reward }).eq('id', fellowId);
-      });
+        lesson_id: lessonId,
+        completed: true,
+        completed_at: new Date()
+      }, { onConflict: 'fellow_id,lesson_id' });
+
+    if (upsertError) {
+      console.error('Lesson progress upsert error:', upsertError);
+      return res.status(500).json({ error: 'Could not save your progress. Please try again.' });
     }
 
-    res.json({ success: true });
+    // Award points only the first time this lesson is completed
+    let pointsAwarded = 0;
+    if (!alreadyCompleted) {
+      const { data: lesson } = await supabase
+        .from('lessons')
+        .select('points_reward')
+        .eq('id', lessonId)
+        .single();
+
+      const reward = lesson?.points_reward || 0;
+      if (reward > 0) {
+        const { data: fellowRow } = await supabase
+          .from('fellows')
+          .select('points')
+          .eq('id', fellowId)
+          .single();
+
+        const { error: pointsError } = await supabase
+          .from('fellows')
+          .update({ points: (fellowRow?.points || 0) + reward })
+          .eq('id', fellowId);
+
+        if (pointsError) {
+          // Progress is already saved — log this but don't fail the whole request
+          console.error('Points update error:', pointsError);
+        } else {
+          pointsAwarded = reward;
+        }
+      }
+    }
+
+    res.json({ success: true, already_completed: alreadyCompleted, points_awarded: pointsAwarded });
   } catch(err) {
-    res.status(500).json({ error: 'Failed to mark complete.' });
+    console.error('Mark complete error:', err);
+    res.status(500).json({ error: err.message || 'Failed to mark complete.' });
   }
 });
 
