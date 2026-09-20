@@ -34,7 +34,7 @@ router.post('/admin/module', adminMiddleware, async (req, res) => {
     res.json({ success: true, module: data });
   } catch(err) {
     console.error('Create module error:', err);
-    res.status(500).json({ error: 'Failed to create module.' });
+    res.status(500).json({ error: err.message || 'Failed to create module.' });
   }
 });
 
@@ -46,7 +46,7 @@ router.patch('/admin/module/:id', adminMiddleware, async (req, res) => {
     if (error) throw error;
     res.json({ success: true, module: data });
   } catch(err) {
-    res.status(500).json({ error: 'Failed to update module.' });
+    res.status(500).json({ error: err.message || 'Failed to update module.' });
   }
 });
 
@@ -56,7 +56,7 @@ router.delete('/admin/module/:id', adminMiddleware, async (req, res) => {
     await supabase.from('modules').delete().eq('id', req.params.id);
     res.json({ success: true });
   } catch(err) {
-    res.status(500).json({ error: 'Failed to delete module.' });
+    res.status(500).json({ error: err.message || 'Failed to delete module.' });
   }
 });
 
@@ -79,7 +79,7 @@ router.post('/admin/lesson', adminMiddleware, async (req, res) => {
     res.json({ success: true, lesson: data });
   } catch(err) {
     console.error('Create lesson error:', err);
-    res.status(500).json({ error: 'Failed to create lesson.' });
+    res.status(500).json({ error: err.message || 'Failed to create lesson.' });
   }
 });
 
@@ -91,7 +91,7 @@ router.patch('/admin/lesson/:id', adminMiddleware, async (req, res) => {
     if (error) throw error;
     res.json({ success: true, lesson: data });
   } catch(err) {
-    res.status(500).json({ error: 'Failed to update lesson.' });
+    res.status(500).json({ error: err.message || 'Failed to update lesson.' });
   }
 });
 
@@ -101,7 +101,7 @@ router.delete('/admin/lesson/:id', adminMiddleware, async (req, res) => {
     await supabase.from('lessons').delete().eq('id', req.params.id);
     res.json({ success: true });
   } catch(err) {
-    res.status(500).json({ error: 'Failed to delete lesson.' });
+    res.status(500).json({ error: err.message || 'Failed to delete lesson.' });
   }
 });
 
@@ -120,7 +120,7 @@ router.post('/admin/assignment', adminMiddleware, async (req, res) => {
     if (error) throw error;
     res.json({ success: true, assignment: data });
   } catch(err) {
-    res.status(500).json({ error: 'Failed to create assignment.' });
+    res.status(500).json({ error: err.message || 'Failed to create assignment.' });
   }
 });
 
@@ -172,7 +172,7 @@ router.post('/admin/exam', adminMiddleware, async (req, res) => {
     res.json({ success: true, exam });
   } catch(err) {
     console.error('Create exam error:', err);
-    res.status(500).json({ error: 'Failed to create exam.' });
+    res.status(500).json({ error: err.message || 'Failed to create exam.' });
   }
 });
 

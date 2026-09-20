@@ -549,3 +549,7 @@ CREATE TABLE IF NOT EXISTS audit_logs (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 ALTER TABLE audit_logs DISABLE ROW LEVEL SECURITY;
+
+-- Allow 'link' as a lesson type
+ALTER TABLE lessons DROP CONSTRAINT IF EXISTS lessons_type_check;
+ALTER TABLE lessons ADD CONSTRAINT lessons_type_check CHECK (type IN ('video','pdf','document','article','audio','quiz','link'));
