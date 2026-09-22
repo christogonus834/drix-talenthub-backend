@@ -2,15 +2,14 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const supabase = require('../config/supabase');
-const { adminMiddleware } = require('../middleware/auth');
+const { adminMiddleware, requireRole, invalidateUser } = require('../middleware/auth');
+const { getSettings, pickPublicSettings, FELLOW_COLUMNS, safe, isUuid } = require('../services/util');
+const { sendToFellow, sendBulk } = require('../services/email');
 
-// Add this BEFORE the router.use(adminMiddleware) line in routes/admin.js
+// PUBLIC (no auth): only whitelisted, non-secret settings. Secret keys are never returned here.
 router.get('/settings/public', async (req, res) => {
   try {
-    const { data } = await supabase.from('settings').select('*');
-    const s = {};
-    data?.forEach(row => s[row.key] = row.value);
-    res.json(s);
+    res.json(pickPublicSettings(await getSettings()));
   } catch(err) {
     res.status(500).json({ error: 'Failed.' });
   }
@@ -50,14 +49,14 @@ router.get('/fellows', async (req, res) => {
     const { status, track_id, cohort_id, search, page = 1, limit = 20 } = req.query;
     let query = supabase
       .from('fellows')
-      .select('*, tracks(name), cohorts(name)', { count: 'exact' })
+      .select(`${FELLOW_COLUMNS}, tracks(name), cohorts(name)`, { count: 'exact' })
       .order('created_at', { ascending: false })
       .range((page - 1) * limit, page * limit - 1);
 
     if (status) query = query.eq('status', status);
     if (track_id) query = query.eq('track_id', track_id);
     if (cohort_id) query = query.eq('cohort_id', cohort_id);
-    if (search) query = query.ilike('full_name', `%${search}%`);
+    if (search) query = query.ilike('full_name', `%${String(search).replace(/[%_,()]/g, ' ').slice(0, 80)}%`);
 
     const { data, error, count } = await query;
     if (error) throw error;
@@ -71,7 +70,7 @@ router.get('/fellows/:id', async (req, res) => {
   try {
     const { data } = await supabase
       .from('fellows')
-      .select('*, tracks(*), cohorts(*)')
+      .select(`${FELLOW_COLUMNS}, tracks(*), cohorts(*)`)
       .eq('id', req.params.id)
       .single();
     res.json(data);
@@ -86,27 +85,35 @@ router.patch('/fellows/:id/status', async (req, res) => {
     const allowed = ['approved', 'rejected', 'suspended', 'pending'];
     if (!allowed.includes(status)) return res.status(400).json({ error: 'Invalid status.' });
 
+    const { data: before } = await supabase.from('fellows').select('status, approved_at').eq('id', req.params.id).single();
+    if (!before) return res.status(404).json({ error: 'Fellow not found.' });
+
     const updateData = { status };
-    if (status === 'approved') updateData.approved_at = new Date();
+    if (status === 'approved' && !before.approved_at) updateData.approved_at = new Date();
 
     const { data, error } = await supabase
       .from('fellows')
       .update(updateData)
       .eq('id', req.params.id)
-      .select()
+      .select(FELLOW_COLUMNS)
       .single();
 
     if (error) throw error;
+    invalidateUser(req.params.id); // suspension / approval takes effect immediately
 
-    // Notify fellow
     const messages = {
       approved: { title: '🎉 Application Approved!', message: 'Congratulations! Your application has been approved. You can now access your dashboard.', type: 'success' },
       rejected: { title: 'Application Update', message: 'Unfortunately, your application was not approved at this time.', type: 'warning' },
       suspended: { title: 'Account Suspended', message: 'Your account has been suspended. Please contact support.', type: 'alert' },
     };
+    if (messages[status] && status !== before.status) {
+      await safe(supabase.from('notifications').insert({ fellow_id: req.params.id, ...messages[status] }), 'notif');
+    }
 
-    if (messages[status]) {
-      await supabase.from('notifications').insert({ fellow_id: req.params.id, ...messages[status] });
+    // Account emails (always sent). Welcome only on FIRST approval, not when re-instating a suspended fellow.
+    if (status !== before.status) {
+      if (status === 'approved' && !before.approved_at) sendToFellow('welcome', data).catch(() => {});
+      if (status === 'rejected') sendToFellow('rejected', data).catch(() => {});
     }
 
     res.json({ success: true, data });
@@ -125,7 +132,7 @@ router.put('/fellows/:id', async (req, res) => {
       .from('fellows')
       .update(updates)
       .eq('id', req.params.id)
-      .select()
+      .select(FELLOW_COLUMNS)
       .single();
 
     if (error) throw error;
@@ -135,23 +142,68 @@ router.put('/fellows/:id', async (req, res) => {
   }
 });
 
-router.delete('/fellows/:id', async (req, res) => {
+router.delete('/fellows/:id', requireRole('admin', 'super_admin'), async (req, res) => {
   try {
     await supabase.from('fellows').delete().eq('id', req.params.id);
+    invalidateUser(req.params.id);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: 'Failed to delete fellow.' });
   }
 });
 
-// Bulk approve
+// Bulk approve — only fellows who are not already approved, each gets a notification + welcome email
 router.post('/fellows/bulk-approve', async (req, res) => {
   try {
-    const { ids } = req.body;
-    await supabase.from('fellows').update({ status: 'approved', approved_at: new Date() }).in('id', ids);
-    res.json({ success: true });
+    const ids = (Array.isArray(req.body?.ids) ? req.body.ids : []).filter(isUuid);
+    if (!ids.length) return res.status(400).json({ error: 'No fellows selected.' });
+
+    const { data: targets } = await supabase.from('fellows')
+      .select('id, full_name, email, approved_at').in('id', ids).neq('status', 'approved');
+    if (!targets?.length) return res.json({ success: true, approved: 0 });
+
+    const targetIds = targets.map(t => t.id);
+    await supabase.from('fellows').update({ status: 'approved', approved_at: new Date() }).in('id', targetIds);
+    targetIds.forEach(invalidateUser);
+
+    await safe(supabase.from('notifications').insert(targetIds.map(id => ({
+      fellow_id: id, title: '🎉 Application Approved!',
+      message: 'Congratulations! Your application has been approved. You can now access your dashboard.', type: 'success',
+    }))), 'notif');
+
+    const firstTime = targets.filter(t => !t.approved_at).map(t => ({ ...t, email_notifications: true }));
+    sendBulk('welcome', firstTime).catch(() => {});
+
+    res.json({ success: true, approved: targetIds.length });
   } catch (err) {
     res.status(500).json({ error: 'Failed.' });
+  }
+});
+
+// ─── SUBMISSIONS (review queue) ──────────────────────────────────────
+// ?status=ungraded|graded|all  &track_id=  &page=  &limit=
+router.get('/submissions', async (req, res) => {
+  try {
+    const { status = 'ungraded', track_id } = req.query;
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 30));
+
+    let q = supabase.from('assignment_submissions')
+      .select(`id, content, file_url, submitted_at, status, grade, feedback, graded_at, graded_by, points_awarded,
+        fellows(id, full_name, fellow_id, email, profile_photo),
+        assignments!inner(id, title, max_score, points_reward, module_id, modules!inner(id, title, track_id, tracks(name)))`, { count: 'exact' });
+
+    if (status === 'ungraded') q = q.eq('status', 'submitted');
+    else if (status === 'graded') q = q.in('status', ['graded', 'returned']);
+    if (isUuid(track_id)) q = q.eq('assignments.modules.track_id', track_id);
+
+    q = q.order('submitted_at', { ascending: status === 'ungraded' }).range((page - 1) * limit, page * limit - 1);
+    const { data, count, error } = await q;
+    if (error) throw error;
+    res.json({ data: data || [], total: count || 0, page, limit });
+  } catch (err) {
+    console.error('submissions list:', err.message);
+    res.status(500).json({ error: 'Failed to load submissions.' });
   }
 });
 
@@ -276,30 +328,26 @@ router.delete('/courses/:id', async (req, res) => {
   }
 });
 
-// ─── SETTINGS ────────────────────────────────────────────────────────
-router.get('/settings', async (req, res) => {
+// ─── SETTINGS (admin / super_admin only — includes payment secrets) ──
+router.get('/settings', requireRole('admin', 'super_admin'), async (req, res) => {
   try {
-    const { data } = await supabase.from('settings').select('*');
-    const map = {};
-    data?.forEach(s => { map[s.key] = s.value; });
-    res.json(map);
+    res.json(await getSettings());
   } catch (err) {
     res.status(500).json({ error: 'Failed.' });
   }
 });
 
-router.patch('/settings', adminMiddleware, async (req, res) => {
+router.patch('/settings', requireRole('admin', 'super_admin'), async (req, res) => {
   try {
-    const updates = req.body;
-    const promises = Object.entries(updates).map(([key, value]) =>
-      supabase
-        .from('settings')
-        .upsert({ key, value: String(value), updated_at: new Date() }, { onConflict: 'key' })
-    );
-    await Promise.all(promises);
+    const updates = req.body || {};
+    const entries = Object.entries(updates).filter(([k]) => /^[a-z0-9_]{1,60}$/.test(k));
+    const results = await Promise.all(entries.map(([key, value]) =>
+      supabase.from('settings').upsert({ key, value: String(value ?? ''), updated_at: new Date() }, { onConflict: 'key' })
+    ));
+    if (results.some(r => r.error)) throw new Error(results.find(r => r.error).error.message);
     res.json({ success: true });
   } catch (err) {
-    console.error('Settings save error:', err);
+    console.error('Settings save error:', err.message);
     res.status(500).json({ error: 'Failed to update settings.' });
   }
 });
@@ -308,12 +356,14 @@ router.patch('/settings', adminMiddleware, async (req, res) => {
 router.post('/notifications/broadcast', async (req, res) => {
   try {
     const { title, message, type, track_id } = req.body;
+    if (!title || !message) return res.status(400).json({ error: 'Title and message are required.' });
+    const safeType = ['info', 'success', 'warning', 'alert'].includes(type) ? type : 'info';
     let query = supabase.from('fellows').select('id').eq('status', 'approved');
     if (track_id) query = query.eq('track_id', track_id);
     const { data: fellows } = await query;
 
-    const notifications = fellows.map(f => ({ fellow_id: f.id, title, message, type: type || 'info' }));
-    await supabase.from('notifications').insert(notifications);
+    const notifications = (fellows || []).map(f => ({ fellow_id: f.id, title, message, type: safeType }));
+    if (notifications.length) await supabase.from('notifications').insert(notifications);
     res.json({ success: true, sent: notifications.length });
   } catch (err) {
     res.status(500).json({ error: 'Failed to broadcast.' });
@@ -321,8 +371,8 @@ router.post('/notifications/broadcast', async (req, res) => {
 });
 
 // ─── ADMINS CRUD (super_admin only) ──────────────────────────────────
-router.get('/admins', async (req, res) => {
-  if (req.admin.role !== 'super_admin') return res.status(403).json({ error: 'Forbidden' });
+const bcryptCost = 12;
+router.get('/admins', requireRole('super_admin'), async (req, res) => {
   try {
     const { data } = await supabase.from('admins').select('id, full_name, email, role, is_active, last_login, created_at');
     res.json(data);
@@ -331,12 +381,17 @@ router.get('/admins', async (req, res) => {
   }
 });
 
-router.post('/admins', async (req, res) => {
-  if (req.admin.role !== 'super_admin') return res.status(403).json({ error: 'Forbidden' });
+router.post('/admins', requireRole('super_admin'), async (req, res) => {
   try {
-    const { full_name, email, password, role } = req.body;
-    const password_hash = await bcrypt.hash(password, 12);
-    const { data, error } = await supabase.from('admins').insert({ full_name, email, password_hash, role }).select('id, full_name, email, role').single();
+    const full_name = String(req.body?.full_name || '').replace(/[<>]/g, '').trim().slice(0, 120);
+    const email = String(req.body?.email || '').trim().toLowerCase();
+    const { password, role } = req.body || {};
+    if (!full_name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: 'Valid name and email are required.' });
+    if (typeof password !== 'string' || password.length < 10) return res.status(400).json({ error: 'Password must be at least 10 characters.' });
+    if (!['admin', 'moderator', 'super_admin'].includes(role)) return res.status(400).json({ error: 'Invalid role.' });
+
+    const password_hash = await bcrypt.hash(password, bcryptCost);
+    const { data, error } = await supabase.from('admins').insert({ full_name, email, password_hash, role, is_active: true }).select('id, full_name, email, role').single();
     if (error) throw error;
     res.json({ success: true, data });
   } catch (err) {
@@ -344,13 +399,15 @@ router.post('/admins', async (req, res) => {
   }
 });
 
-router.delete('/admins/:id', async (req, res) => {
-  if (req.admin.role !== 'super_admin') return res.status(403).json({ error: 'Forbidden' });
+router.delete('/admins/:id', requireRole('super_admin'), async (req, res) => {
   try {
+    if (req.params.id === req.admin.id) return res.status(400).json({ error: 'You cannot deactivate your own account.' });
     await supabase.from('admins').update({ is_active: false }).eq('id', req.params.id);
+    invalidateUser(req.params.id);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: 'Failed.' });
   }
 });
+
 module.exports = router;

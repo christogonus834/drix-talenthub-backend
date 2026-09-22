@@ -222,17 +222,7 @@ ALTER TABLE assessment_results DISABLE ROW LEVEL SECURITY;
 ALTER TABLE community_posts DISABLE ROW LEVEL SECURITY;
 ALTER TABLE notifications DISABLE ROW LEVEL SECURITY;
 
--- ============================================
--- DEFAULT SUPER ADMIN (password: Admin@Drix2025)
--- Change password immediately after first login!
--- ============================================
-INSERT INTO admins (full_name, email, password_hash, role)
-VALUES (
-  'Super Admin',
-  'admin@drixtechtalent.com',
-  '$2a$12$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2uheWG/igi.',
-  'super_admin'
-) ON CONFLICT (email) DO UPDATE SET password_hash = '$2a$12$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2uheWG/igi.';
+-- Admin accounts are created with:  ADMIN_SEED_PASSWORD=... node seed-admin.js
 
 -- ============================================
 -- CERTIFICATES TABLE
@@ -262,9 +252,6 @@ CREATE INDEX IF NOT EXISTS idx_certificates_fellow_id ON certificates(fellow_id)
 ALTER TABLE fellows ADD COLUMN IF NOT EXISTS profile_photo TEXT;
 ALTER TABLE certificates ADD COLUMN IF NOT EXISTS fellow_photo TEXT;
 
--- Fix admin password (run this to reset to Admin@Drix2025)
-UPDATE admins SET password_hash = '$2a$12$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2uheWG/igi.'
-WHERE email = 'admin@drixtechtalent.com';
 
 
 -- ============================================================
@@ -337,10 +324,6 @@ ALTER TABLE fellows ADD COLUMN IF NOT EXISTS payment_provider  TEXT;
 
 -- Add issued_manually to certificates if missing
 ALTER TABLE certificates ADD COLUMN IF NOT EXISTS issued_manually BOOLEAN DEFAULT FALSE;
-
--- Fix admin password (Admin@Drix2025) — run if needed
--- UPDATE admins SET password_hash = '$2a$12$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2uheWG/igi.'
--- WHERE email = 'admin@drixtechtalent.com';
 
 
 -- ============================================================

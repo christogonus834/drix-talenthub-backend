@@ -1,220 +1,100 @@
-// middleware/security.js
-// Implements: Rate Limiting, Input Sanitization, Request Signing validation,
-// Audit Logging, Idempotency Keys, Secrets protection, CORS Policy
+// middleware/security.js — wired into server.js.
+//
+// NOTE: the old regex "sanitizeInput" was removed on purpose. It rejected any text containing the words
+// SELECT…FROM / DELETE / UPDATE / INSERT / DROP (i.e. every SQL lesson, exam question and message about
+// databases) and silently rewrote other input. Supabase queries are parameterised, so SQL injection is not
+// handled by keyword blocking; XSS is handled by escaping on output (esc() in the frontend, esc() in emails).
 
 const rateLimit = require('express-rate-limit');
-const crypto = require('crypto');
 const supabase = require('../config/supabase');
 
-// ─── 1. RATE LIMITING (tiered) ────────────────────────────────────────
+const json429 = msg => ({ error: msg });
+
 const globalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 300,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: 'Too many requests. Please slow down.' },
-  skip: (req) => req.path === '/health'
+  windowMs: 15 * 60 * 1000, max: 600, standardHeaders: true, legacyHeaders: false,
+  message: json429('Too many requests. Please slow down.'),
+  skip: req => req.path === '/health',
 });
-
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 8, // max 8 login attempts per 15 min per IP
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: 'Too many login attempts. Try again in 15 minutes.' },
-  handler: (req, res) => {
-    console.warn(`[SECURITY] Rate limit hit on auth from IP: ${req.ip}`);
-    res.status(429).json({ error: 'Too many login attempts. Try again in 15 minutes.' });
-  }
+  windowMs: 15 * 60 * 1000, max: 10, standardHeaders: true, legacyHeaders: false,
+  message: json429('Too many login attempts. Try again in 15 minutes.'),
 });
-
+const registerLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, max: 15, standardHeaders: true, legacyHeaders: false,
+  message: json429('Too many registration attempts. Try again later.'),
+});
+const publicWriteLimiter = rateLimit({          // contact form, payment verify, unsubscribe
+  windowMs: 60 * 60 * 1000, max: 30, standardHeaders: true, legacyHeaders: false,
+  message: json429('Too many requests. Try again later.'),
+});
 const uploadLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000,
-  max: 20,
-  message: { error: 'Upload limit reached. Try again in 1 hour.' }
+  windowMs: 60 * 60 * 1000, max: 40, standardHeaders: true, legacyHeaders: false,
+  message: json429('Upload limit reached. Try again in 1 hour.'),
+});
+const aiLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, max: 60, standardHeaders: true, legacyHeaders: false,
+  message: json429('AI assistant limit reached. Try again later.'),
 });
 
-const apiLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 min
-  max: 60,
-  message: { error: 'API rate limit exceeded.' }
-});
-
-// ─── 2. INPUT SANITIZATION ────────────────────────────────────────────
-function sanitizeInput(req, res, next) {
-  // Strip dangerous characters from string inputs
-  const sanitize = (obj) => {
-    if (typeof obj === 'string') {
-      return obj
-        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-        .replace(/javascript:/gi, '')
-        .replace(/on\w+\s*=/gi, '')
-        .trim();
-    }
-    if (Array.isArray(obj)) return obj.map(sanitize);
-    if (obj && typeof obj === 'object') {
-      const clean = {};
-      for (const key of Object.keys(obj)) {
-        // Block SQL injection attempts
-        if (typeof obj[key] === 'string' && /(\bDROP\b|\bDELETE\b|\bINSERT\b|\bUPDATE\b|\bSELECT\b.*\bFROM\b)/i.test(obj[key])) {
-          console.warn(`[SECURITY] Possible SQL injection attempt from IP: ${req.ip}, key: ${key}`);
-          return res.status(400).json({ error: 'Invalid input detected.' });
-        }
-        clean[key] = sanitize(obj[key]);
-      }
-      return clean;
-    }
-    return obj;
-  };
-
-  if (req.body) req.body = sanitize(req.body);
-  if (req.query) req.query = sanitize(req.query);
-  next();
-}
-
-// ─── 3. HIDE SENSITIVE HEADERS (no server fingerprinting) ─────────────
 function hideServerInfo(req, res, next) {
   res.removeHeader('X-Powered-By');
-  res.removeHeader('Server');
   res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'DENY');
-  res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
   next();
 }
 
-// ─── 4. AUDIT LOGGING ────────────────────────────────────────────────
+// ─── AUDIT LOG ───────────────────────────────────────────────────────
+const SENSITIVE = /(pass|secret|token|key|hash|photo|base64)/i;
+function redact(v, depth = 0) {
+  if (v === null || typeof v !== 'object' || depth > 3) return v;
+  if (Array.isArray(v)) return v.slice(0, 20).map(x => redact(x, depth + 1));
+  const out = {};
+  for (const k of Object.keys(v)) {
+    out[k] = SENSITIVE.test(k) ? '[redacted]' : (typeof v[k] === 'string' && v[k].length > 300 ? v[k].slice(0, 300) + '…' : redact(v[k], depth + 1));
+  }
+  return out;
+}
+
 async function auditLog(action, userId, userType, details = {}, req) {
   try {
     await supabase.from('audit_logs').insert({
-      action,
-      user_id: userId,
-      user_type: userType, // 'fellow' | 'admin'
+      action, user_id: userId, user_type: userType,
       ip_address: req?.ip || 'unknown',
       user_agent: req?.headers?.['user-agent']?.substring(0, 200) || 'unknown',
-      details: JSON.stringify(details),
-      created_at: new Date()
-    }).catch(() => {}); // Non-blocking
-  } catch(e) {}
+      details: JSON.stringify(redact(details)),
+    });
+  } catch (e) { /* never block the request */ }
 }
 
-// Middleware to log all admin actions
+// Logs every admin write (POST/PATCH/PUT/DELETE) once the response is sent, with secrets redacted.
 function adminAuditMiddleware(req, res, next) {
-  const originalJson = res.json.bind(res);
-  res.json = function(data) {
-    // Log after response
-    if (req.admin && (req.method === 'POST' || req.method === 'PATCH' || req.method === 'DELETE')) {
-      auditLog(
-        `${req.method} ${req.path}`,
-        req.admin.id,
-        'admin',
-        { body: req.body, status: res.statusCode },
-        req
-      );
+  if (!['POST', 'PATCH', 'PUT', 'DELETE'].includes(req.method)) return next();
+  res.on('finish', () => {
+    if (req.admin) {
+      auditLog(`${req.method} ${req.originalUrl.split('?')[0]}`, req.admin.id, 'admin', { body: req.body, status: res.statusCode }, req);
     }
-    return originalJson(data);
-  };
+  });
   next();
 }
 
-// ─── 5. IDEMPOTENCY KEY (prevent duplicate submissions) ───────────────
-const idempotencyCache = new Map(); // In-memory; use Redis in production
-
+// Bounded, TTL-based idempotency for POSTs that send X-Idempotency-Key
+const idem = new Map();
 function idempotencyMiddleware(req, res, next) {
   const key = req.headers['x-idempotency-key'];
   if (!key || req.method !== 'POST') return next();
-
-  const cached = idempotencyCache.get(key);
-  if (cached) {
-    // Return cached response for duplicate requests
-    return res.status(cached.status).json(cached.body);
-  }
-
-  // Store the response
-  const originalJson = res.json.bind(res);
-  res.json = function(data) {
-    idempotencyCache.set(key, { status: res.statusCode, body: data });
-    // Expire after 24 hours
-    setTimeout(() => idempotencyCache.delete(key), 24 * 60 * 60 * 1000);
-    return originalJson(data);
+  const hit = idem.get(key);
+  if (hit && hit.exp > Date.now()) return res.status(hit.status).json(hit.body);
+  const orig = res.json.bind(res);
+  res.json = body => {
+    if (idem.size > 2000) { for (const [k, v] of idem) if (v.exp < Date.now()) idem.delete(k); }
+    idem.set(key, { status: res.statusCode, body, exp: Date.now() + 10 * 60 * 1000 });
+    return orig(body);
   };
-  next();
-}
-
-// ─── 6. VELOCITY CHECK (detect suspicious activity) ───────────────────
-const activityTracker = new Map();
-
-function velocityCheck(req, res, next) {
-  const ip = req.ip;
-  const now = Date.now();
-  const window = 60 * 1000; // 1 min window
-
-  if (!activityTracker.has(ip)) {
-    activityTracker.set(ip, { count: 0, firstSeen: now, flagged: false });
-  }
-
-  const tracker = activityTracker.get(ip);
-
-  // Reset window
-  if (now - tracker.firstSeen > window) {
-    tracker.count = 0;
-    tracker.firstSeen = now;
-    tracker.flagged = false;
-  }
-
-  tracker.count++;
-
-  // Flag suspicious if > 100 requests/min from same IP
-  if (tracker.count > 100 && !tracker.flagged) {
-    tracker.flagged = true;
-    console.warn(`[SECURITY] Suspicious velocity from IP: ${ip} — ${tracker.count} req/min`);
-    auditLog('VELOCITY_FLAG', null, 'system', { ip, count: tracker.count }, req);
-  }
-
-  next();
-}
-
-// ─── 7. SEPARATION OF DUTIES check ────────────────────────────────────
-// Fellows cannot access admin routes, admins cannot impersonate fellows
-function separationOfDuties(req, res, next) {
-  const authHeader = req.headers['authorization'];
-  if (!authHeader) return next();
-
-  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
-  if (!token) return next();
-
-  try {
-    const jwt = require('jsonwebtoken');
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    // Block fellows from admin routes
-    if (decoded.role === 'fellow' && req.path.startsWith('/api/admin')) {
-      console.warn(`[SECURITY] Fellow attempted admin access: ${decoded.email}`);
-      return res.status(403).json({ error: 'Access denied.' });
-    }
-
-    // Block admins from fellow-only dashboard routes (allow for certificate viewing)
-    if (['admin', 'super_admin', 'moderator'].includes(decoded.role) &&
-        req.path.startsWith('/api/fellows/me')) {
-      return res.status(403).json({ error: 'Admin accounts cannot access fellow dashboard.' });
-    }
-  } catch(e) {
-    // Invalid token — let individual middleware handle it
-  }
   next();
 }
 
 module.exports = {
-  globalLimiter,
-  authLimiter,
-  uploadLimiter,
-  apiLimiter,
-  sanitizeInput,
-  hideServerInfo,
-  auditLog,
-  adminAuditMiddleware,
-  idempotencyMiddleware,
-  velocityCheck,
-  separationOfDuties
+  globalLimiter, authLimiter, registerLimiter, publicWriteLimiter, uploadLimiter, aiLimiter,
+  hideServerInfo, auditLog, adminAuditMiddleware, idempotencyMiddleware,
 };

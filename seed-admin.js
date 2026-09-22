@@ -8,11 +8,17 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_KEY
 );
 
+// Password comes from the environment — never hard-code it. Use 10+ characters.
+if (!process.env.ADMIN_SEED_PASSWORD || process.env.ADMIN_SEED_PASSWORD.length < 10) {
+  console.error('Set ADMIN_SEED_PASSWORD (10+ chars) in your environment, then run again.');
+  process.exit(1);
+}
+
 const admins = [
   {
     full_name: 'Super Admin',
-    email: 'admin@drixtechtalent.com',
-    password: 'Admin@Drix2025',
+    email: (process.env.ADMIN_SEED_EMAIL || 'admin@drixtechtalent.com').toLowerCase(),
+    password: process.env.ADMIN_SEED_PASSWORD,
     role: 'super_admin',
   },
   // Add more admins below if needed:

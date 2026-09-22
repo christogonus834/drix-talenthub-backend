@@ -1,11 +1,15 @@
 const express = require('express');
 const router = express.Router();
 const supabase = require('../config/supabase');
+const crypto = require('crypto');
 const { authMiddleware, adminMiddleware } = require('../middleware/auth');
+const { safe, getSettings } = require('../services/util');
+const { getEligibility } = require('../services/progress');
+const { sendToFellow } = require('../services/email');
 
 function generateCertId() {
   const year = new Date().getFullYear();
-  const rand = Math.random().toString(36).substring(2, 8).toUpperCase();
+  const rand = crypto.randomBytes(4).toString('hex').toUpperCase();
   return `DRIX-CERT-${year}-${rand}`;
 }
 
@@ -19,9 +23,7 @@ router.get('/verify/:certId', async (req, res) => {
       .single();
     if (!cert) return res.status(404).json({ valid: false, error: 'Certificate not found.' });
 
-    const { data: settings } = await supabase.from('settings').select('*');
-    const s = {};
-    settings?.forEach(r => s[r.key] = r.value);
+    const s = await getSettings();
 
     res.json({
       valid: true,
@@ -62,9 +64,7 @@ router.get('/my', authMiddleware, async (req, res) => {
       .eq('fellow_id', req.user.id)
       .order('requested_at', { ascending: false });
 
-    const { data: settings } = await supabase.from('settings').select('*');
-    const s = {};
-    settings?.forEach(r => s[r.key] = r.value);
+    const s = await getSettings();
 
     res.json({
       certificates: certs || [],
@@ -79,156 +79,53 @@ router.get('/my', authMiddleware, async (req, res) => {
   }
 });
 
-// ── FELLOW: Check eligibility (score >= 80%) ──────────────────────────
+// ── FELLOW: Check eligibility (>= 80% lessons AND track exam passed, if the track has one) ──
 router.get('/eligibility', authMiddleware, async (req, res) => {
   try {
-    const fellowId = req.user.id;
-    const { data: fellow } = await supabase
-      .from('fellows')
-      .select('track_id, tracks(name)')
-      .eq('id', fellowId)
-      .single();
-
-    if (!fellow?.track_id) return res.json({ eligible: false, reason: 'No track assigned.' });
-
-    // Get all lessons for the track (via modules)
-    const { data: modules } = await supabase
-      .from('modules')
-      .select('id, lessons(id)')
-      .eq('track_id', fellow.track_id)
-      .eq('is_active', true);
-
-    const allLessonIds = (modules || []).flatMap(m => (m.lessons || []).map(l => l.id));
-    const totalLessons = allLessonIds.length;
-
-    if (totalLessons === 0) return res.json({ eligible: false, reason: 'No lessons added to this track yet.' });
-
-    // Get completed lessons
-    const { data: progress } = await supabase
-      .from('fellow_lesson_progress')
-      .select('id')
-      .eq('fellow_id', fellowId)
-      .eq('completed', true)
-      .in('lesson_id', allLessonIds);
-
-    const completedLessons = progress?.length || 0;
-    const scorePercent = Math.round((completedLessons / totalLessons) * 100);
-
-    // Check if cert already issued or requested
-    const { data: existingCert } = await supabase
-      .from('certificates')
-      .select('id')
-      .eq('fellow_id', fellowId)
-      .eq('track_id', fellow.track_id)
-      .single();
-
-    const { data: pendingReq } = await supabase
-      .from('certificate_requests')
-      .select('id, status')
-      .eq('fellow_id', fellowId)
-      .eq('track_id', fellow.track_id)
-      .in('status', ['pending', 'approved'])
-      .single();
-
-    res.json({
-      eligible: scorePercent >= 80 && !existingCert && !pendingReq,
-      score: scorePercent,
-      completed: completedLessons,
-      total: totalLessons,
-      has_certificate: !!existingCert,
-      has_pending_request: !!pendingReq,
-      pending_status: pendingReq?.status || null,
-      track_name: fellow.tracks?.name,
-      minimum_score: 80
-    });
+    res.json(await getEligibility(req.user.id));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to check eligibility.' });
   }
 });
 
-// ── FELLOW: Request certificate (must have >= 80% score) ─────────────
+// ── FELLOW: Request certificate ───────────────────────────────────────
 router.post('/request', authMiddleware, async (req, res) => {
   try {
     const fellowId = req.user.id;
+    const el = await getEligibility(fellowId);
 
-    // Use eligibility check logic
-    const { data: fellow } = await supabase
-      .from('fellows')
-      .select('track_id, profile_photo')
-      .eq('id', fellowId)
-      .single();
-
-    if (!fellow?.track_id) return res.status(400).json({ error: 'No track assigned.' });
-
-    const { data: modules } = await supabase
-      .from('modules')
-      .select('id, lessons(id)')
-      .eq('track_id', fellow.track_id)
-      .eq('is_active', true);
-
-    const allLessonIds = (modules || []).flatMap(m => (m.lessons || []).map(l => l.id));
-    const totalLessons = allLessonIds.length;
-
-    if (totalLessons === 0) return res.status(400).json({ error: 'No lessons in your track yet.' });
-
-    const { data: progress } = await supabase
-      .from('fellow_lesson_progress')
-      .select('id')
-      .eq('fellow_id', fellowId)
-      .eq('completed', true)
-      .in('lesson_id', allLessonIds);
-
-    const completedLessons = progress?.length || 0;
-    const scorePercent = Math.round((completedLessons / totalLessons) * 100);
-
-    if (scorePercent < 80) {
+    if (!el.track_id) return res.status(400).json({ error: el.reason || 'No track assigned.' });
+    if (el.has_certificate) return res.status(400).json({ error: 'Certificate already issued for this track.' });
+    if (el.has_pending_request) return res.status(400).json({ error: 'You already have a pending request.' });
+    if (!el.eligible) {
       return res.status(400).json({
-        error: `You need at least 80% completion to request a certificate. Your current score is ${scorePercent}%.`
+        error: el.reason
+          ? `${el.reason} Your lesson completion is ${el.score ?? 0}%.`
+          : 'You are not eligible for a certificate yet.'
       });
     }
 
-    // Check no existing cert or pending request
-    const { data: existing } = await supabase
-      .from('certificates')
-      .select('id')
-      .eq('fellow_id', fellowId)
-      .eq('track_id', fellow.track_id)
-      .single();
-    if (existing) return res.status(400).json({ error: 'Certificate already issued for this track.' });
-
-    const { data: pending } = await supabase
-      .from('certificate_requests')
-      .select('id')
-      .eq('fellow_id', fellowId)
-      .eq('track_id', fellow.track_id)
-      .eq('status', 'pending')
-      .single();
-    if (pending) return res.status(400).json({ error: 'You already have a pending request.' });
-
     const { error } = await supabase.from('certificate_requests').insert({
-      fellow_id: fellowId,
-      track_id: fellow.track_id,
-      score: scorePercent
+      fellow_id: fellowId, track_id: el.track_id, score: el.score
     });
     if (error) throw error;
 
-    // Notify admin
-    await supabase.from('notifications').insert({
+    await safe(supabase.from('notifications').insert({
       fellow_id: fellowId,
       title: 'Certificate Request Submitted',
-      message: `Your certificate request has been submitted with a score of ${scorePercent}%. Admin will review shortly.`,
+      message: `Your certificate request has been submitted with a score of ${el.score}%. Admin will review shortly.`,
       type: 'info'
-    }).catch(() => {});
+    }), 'notif');
 
-    res.json({ success: true, score: scorePercent, message: `Request submitted! Score: ${scorePercent}%` });
+    res.json({ success: true, score: el.score, message: `Request submitted! Score: ${el.score}%` });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to submit request.' });
   }
 });
 
-// ── FELLOW: Enrol in new track after completion ───────────────────────
+// ── FELLOW: Enrol in new track (only after being certified in the current one) ──
 router.post('/enrol-new-track', authMiddleware, async (req, res) => {
   try {
     const { track_id } = req.body;
@@ -236,17 +133,22 @@ router.post('/enrol-new-track', authMiddleware, async (req, res) => {
     if (!track_id) return res.status(400).json({ error: 'Track ID required.' });
 
     const { data: fellow } = await supabase.from('fellows').select('track_id, cohort_id').eq('id', fellowId).single();
+    if (!fellow) return res.status(404).json({ error: 'Fellow not found.' });
+    if (fellow.track_id === track_id) return res.status(400).json({ error: 'You are already on this track.' });
 
-    await supabase.from('fellow_track_history').insert({
-      fellow_id: fellowId,
-      track_id: fellow.track_id,
-      cohort_id: fellow.cohort_id,
-      completed: true,
-      completed_at: new Date(),
-    }).catch(() => {});
+    const { data: certs } = await supabase.from('certificates').select('id')
+      .eq('fellow_id', fellowId).eq('track_id', fellow.track_id).limit(1);
+    if (!certs?.length) return res.status(400).json({ error: 'Complete and earn your certificate on the current track before switching.' });
+
+    const { data: track } = await supabase.from('tracks').select('id').eq('id', track_id).eq('is_active', true).maybeSingle();
+    if (!track) return res.status(400).json({ error: 'That track is not available.' });
+
+    await safe(supabase.from('fellow_track_history').insert({
+      fellow_id: fellowId, track_id: fellow.track_id, cohort_id: fellow.cohort_id,
+      completed: true, completed_at: new Date(),
+    }), 'history');
 
     await supabase.from('fellows').update({ track_id }).eq('id', fellowId);
-    await supabase.from('fellow_lesson_progress').delete().eq('fellow_id', fellowId);
 
     res.json({ success: true, message: 'Enrolled in new track!' });
   } catch (err) {
@@ -277,7 +179,7 @@ router.post('/requests/:id/approve', adminMiddleware, async (req, res) => {
     const { grade, title } = req.body;
     const { data: reqData } = await supabase
       .from('certificate_requests')
-      .select('*, fellows(full_name, profile_photo)')
+      .select('*, fellows(id, full_name, email, profile_photo)')
       .eq('id', req.params.id)
       .single();
 
@@ -304,12 +206,15 @@ router.post('/requests/:id/approve', adminMiddleware, async (req, res) => {
       .eq('id', req.params.id);
 
     // Notify fellow
-    await supabase.from('notifications').insert({
+    await safe(supabase.from('notifications').insert({
       fellow_id: reqData.fellow_id,
       title: 'Certificate Approved!',
       message: `Your certificate has been approved and issued. Certificate ID: ${certId}. Visit your certificates page to download it.`,
       type: 'success'
-    }).catch(() => {});
+    }), 'notif');
+
+    // account email — always sent
+    if (reqData.fellows?.email) sendToFellow('certificate_ready', reqData.fellows, { certId }).catch(() => {});
 
     res.json({ success: true, certificate_id: certId });
   } catch (err) {
@@ -330,12 +235,12 @@ router.post('/requests/:id/reject', adminMiddleware, async (req, res) => {
       .update({ status: 'rejected', reviewed_at: new Date(), reject_reason: reason || 'Not approved.' })
       .eq('id', req.params.id);
 
-    await supabase.from('notifications').insert({
+    await safe(supabase.from('notifications').insert({
       fellow_id: reqData.fellow_id,
       title: 'Certificate Request Rejected',
       message: `Your certificate request was not approved. Reason: ${reason || 'Please contact admin.'}`,
-      type: 'error'
-    }).catch(() => {});
+      type: 'alert'
+    }), 'notif');
 
     res.json({ success: true });
   } catch (err) {
@@ -368,12 +273,17 @@ router.post('/issue', adminMiddleware, async (req, res) => {
     });
     if (error) throw error;
 
-    await supabase.from('notifications').insert({
+    await safe(supabase.from('notifications').insert({
       fellow_id,
       title: 'Certificate Issued!',
       message: `Admin has issued you a certificate. ID: ${certId}. Visit your certificates page to download it.`,
       type: 'success'
-    }).catch(() => {});
+    }), 'notif');
+
+    (async () => {
+      const { data: f } = await supabase.from('fellows').select('id, full_name, email').eq('id', fellow_id).single();
+      if (f) await sendToFellow('certificate_ready', f, { certId });
+    })().catch(() => {});
 
     res.json({ success: true, certificate_id: certId });
   } catch (err) {

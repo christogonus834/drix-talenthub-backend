@@ -2,16 +2,13 @@
 const express = require('express');
 const router = express.Router();
 const supabase = require('../config/supabase');
+const { getSettings, safe } = require('../services/util');
+const { verifyRegistrationPayment } = require('../services/payments');
 
-// FIX #6 — polyfill fetch for Node < 18
-const _fetch = globalThis.fetch || require('node-fetch').default || require('node-fetch');
-
-// ── Public: Get payment config ────────────────────────────────────────
+// ── Public: payment config (public keys only) ─────────────────────────
 router.get('/config', async (req, res) => {
   try {
-    const { data } = await supabase.from('settings').select('*');
-    const s = {};
-    data?.forEach(row => s[row.key] = row.value);
+    const s = await getSettings();
     res.json({
       payment_enabled:    s.payment_enabled === 'true',
       payment_provider:   s.payment_provider || 'flutterwave',
@@ -25,49 +22,21 @@ router.get('/config', async (req, res) => {
   }
 });
 
-// ── Verify payment after success callback ─────────────────────────────
+// ── Verify a payment (used by the registration form before submit) ────
+// Verifies with the provider AND checks amount/currency against the configured fee.
+// Registration re-verifies server-side, so this endpoint is advisory for the UI.
 router.post('/verify', async (req, res) => {
   try {
-    const { reference, provider, email } = req.body;
-    if (!reference || !provider) return res.status(400).json({ error: 'Missing reference or provider.' });
+    const { reference, provider, email } = req.body || {};
+    const v = await verifyRegistrationPayment({ provider, reference });
+    if (!v.ok) return res.status(400).json({ error: v.error || 'Payment verification failed.' });
 
-    const { data: settings } = await supabase.from('settings').select('*');
-    const s = {};
-    settings?.forEach(row => s[row.key] = row.value);
+    await safe(supabase.from('payments').upsert({
+      reference: String(reference), provider, email: email || v.email || null,
+      amount: v.amount, status: 'success', paid_at: new Date().toISOString(),
+    }, { onConflict: 'reference', ignoreDuplicates: true }), 'payments');
 
-    let verified = false;
-    let amount = 0;
-
-    if (provider === 'paystack') {
-      const resp = await _fetch(`https://api.paystack.co/transaction/verify/${reference}`, {
-        headers: { Authorization: `Bearer ${s.paystack_secret_key}` }
-      });
-      const data = await resp.json();
-      if (data.data?.status === 'success') {
-        verified = true;
-        amount = data.data.amount / 100; // kobo → naira
-      }
-    } else if (provider === 'flutterwave') {
-      const resp = await _fetch(`https://api.flutterwave.com/v3/transactions/${reference}/verify`, {
-        headers: { Authorization: `Bearer ${s.flutterwave_secret_key}` }
-      });
-      const data = await resp.json();
-      if (data.data?.status === 'successful') {
-        verified = true;
-        amount = data.data.amount;
-      }
-    }
-
-    if (!verified) return res.status(400).json({ error: 'Payment verification failed.' });
-
-    // Log payment
-    await supabase.from('payments').insert({
-      reference, provider, email, amount,
-      status: 'success',
-      paid_at: new Date(),
-    }).catch(() => {});
-
-    res.json({ success: true, verified: true, amount });
+    res.json({ success: true, verified: true, amount: v.amount });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Verification error.' });
