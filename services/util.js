@@ -70,8 +70,17 @@ function parseDate(v) {
   return isNaN(d.getTime()) ? undefined : d.toISOString();
 }
 
+// Monday of the ISO week containing `d` (defaults to now), as YYYY-MM-DD (UTC).
+function weekStart(d = new Date()) {
+  const date = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+  const day = date.getUTCDay(); // 0=Sun..6=Sat
+  const diff = day === 0 ? -6 : 1 - day; // shift back to Monday
+  date.setUTCDate(date.getUTCDate() + diff);
+  return date.toISOString().slice(0, 10);
+}
+
 module.exports = {
   supabase, PUBLIC_SETTING_KEYS, FELLOW_COLUMNS,
   getSettings, pickPublicSettings, safe, esc, cleanText,
-  frontendUrl, backendUrl, isUuid, parseDate,
+  frontendUrl, backendUrl, isUuid, parseDate, weekStart,
 };

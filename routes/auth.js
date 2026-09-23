@@ -161,6 +161,30 @@ router.post('/admin/login', async (req, res) => {
   }
 });
 
+// ─── MENTOR LOGIN ───────────────────────────────────────────────────
+router.post('/mentor/login', async (req, res) => {
+  try {
+    const email = String(req.body?.email || '').trim().toLowerCase();
+    const password = req.body?.password;
+    if (!email || !password || typeof password !== 'string') return res.status(400).json({ error: 'Email and password required.' });
+
+    const { data: mentor } = await supabase.from('mentors').select('*').eq('email', email).eq('is_active', true).maybeSingle();
+    const valid = await bcrypt.compare(password, mentor?.password_hash || DUMMY_HASH);
+    if (!mentor || !valid) return res.status(401).json({ error: 'Invalid credentials.' });
+
+    await safe(supabase.from('mentors').update({ last_login: new Date() }).eq('id', mentor.id), 'last_login');
+
+    const token = jwt.sign(
+      { id: mentor.id, email: mentor.email, role: 'mentor', name: mentor.full_name },
+      process.env.JWT_SECRET, { expiresIn: '7d' }
+    );
+    res.json({ success: true, token, redirect: '/mentor/dashboard' });
+  } catch (err) {
+    console.error('Mentor login error:', err);
+    res.status(500).json({ error: 'Login failed. Please try again.' });
+  }
+});
+
 // ─── LOGOUT ─────────────────────────────────────────────────────────
 router.post('/logout', (req, res) => res.json({ success: true }));
 

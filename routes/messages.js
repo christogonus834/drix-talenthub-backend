@@ -12,15 +12,43 @@ router.post('/send', authMiddleware, async (req, res) => {
   try {
     const subject = cleanText(req.body?.subject, 200);
     const message = String(req.body?.message || '').trim().slice(0, 5000);
+    const to = req.body?.to === 'mentor' ? 'mentor' : 'admin';
     if (!message) return res.status(400).json({ error: 'Message is required.' });
+
+    let mentor_id = null;
+    if (to === 'mentor') {
+      const { data: me } = await supabase.from('fellows').select('mentor_id').eq('id', req.user.id).single();
+      if (!me?.mentor_id) return res.status(400).json({ error: "You don't have a mentor assigned yet." });
+      mentor_id = me.mentor_id;
+    }
+
     const { data, error } = await supabase.from('messages').insert({
       fellow_id: req.user.id,
-      subject: subject || 'General Enquiry',
+      subject: subject || (to === 'mentor' ? 'Message to mentor' : 'General Enquiry'),
       message,
       status: 'unread',
+      recipient_type: to,
+      mentor_id,
       sent_at: new Date()
     }).select().single();
     if (error) throw error;
+
+    if (to === 'mentor') {
+      // Mentors don't have an in-app notification feed yet — a quick email nudge instead (best-effort).
+      (async () => {
+        const { data: mentor } = await supabase.from('mentors').select('email, full_name').eq('id', mentor_id).single();
+        const { data: fellow } = await supabase.from('fellows').select('full_name').eq('id', req.user.id).single();
+        if (mentor?.email) {
+          await sendPlain({
+            to: mentor.email, toName: mentor.full_name, type: 'contact_reply',
+            subject: `New message from ${fellow?.full_name || 'a mentee'}`,
+            heading: 'You have a new message from a mentee',
+            text: message,
+          });
+        }
+      })().catch(() => {});
+    }
+
     res.json({ success: true, message: data });
   } catch(err) {
     res.status(500).json({ error: 'Failed to send message.' });

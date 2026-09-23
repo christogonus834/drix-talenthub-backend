@@ -3,7 +3,7 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const supabase = require('../config/supabase');
 const { adminMiddleware, requireRole, invalidateUser } = require('../middleware/auth');
-const { getSettings, pickPublicSettings, FELLOW_COLUMNS, safe, isUuid } = require('../services/util');
+const { getSettings, pickPublicSettings, FELLOW_COLUMNS, safe, isUuid, weekStart } = require('../services/util');
 const { sendToFellow, sendBulk } = require('../services/email');
 
 // PUBLIC (no auth): only whitelisted, non-secret settings. Secret keys are never returned here.
@@ -370,8 +370,190 @@ router.post('/notifications/broadcast', async (req, res) => {
   }
 });
 
-// ─── ADMINS CRUD (super_admin only) ──────────────────────────────────
 const bcryptCost = 12;
+
+// ─── WEEKLY CHECK-INS ───────────────────────────────────────────────
+router.get('/checkins', async (req, res) => {
+  try {
+    const week = req.query.week && /^\d{4}-\d{2}-\d{2}$/.test(req.query.week) ? req.query.week : weekStart();
+    const { data: checkins } = await supabase.from('weekly_checkins')
+      .select('*, fellows(full_name, email, fellow_id, profile_photo, tracks(name))')
+      .eq('week_start', week)
+      .order('needs_help', { ascending: false })
+      .order('confidence_rating', { ascending: true });
+    const { count: totalApproved } = await supabase.from('fellows').select('id', { count: 'exact', head: true }).eq('status', 'approved');
+    res.json({ week_start: week, checkins: checkins || [], total_approved: totalApproved || 0, submitted: (checkins || []).length });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to load check-ins.' });
+  }
+});
+
+// Early-warning list: flagged for help this week, low confidence (<=2) this week, or no check-in
+// submitted for the last 2 weeks running (among fellows who have submitted at least once before —
+// so a brand-new fellow isn't flagged in week one).
+router.get('/checkins/warnings', async (req, res) => {
+  try {
+    const thisWeek = weekStart();
+    const lastWeek = weekStart(new Date(Date.now() - 7 * 86400000));
+
+    const { data: thisWeekRows } = await supabase.from('weekly_checkins')
+      .select('*, fellows(full_name, email, fellow_id, profile_photo, tracks(name))')
+      .eq('week_start', thisWeek);
+    const { data: lastWeekRows } = await supabase.from('weekly_checkins').select('fellow_id').eq('week_start', lastWeek);
+    const { data: everSubmitted } = await supabase.from('weekly_checkins').select('fellow_id').neq('week_start', thisWeek);
+
+    const submittedThisWeek = new Set((thisWeekRows || []).map(r => r.fellow_id));
+    const submittedLastWeek = new Set((lastWeekRows || []).map(r => r.fellow_id));
+    const everSubmittedSet = new Set((everSubmitted || []).map(r => r.fellow_id));
+
+    const flaggedHelp = (thisWeekRows || []).filter(r => r.needs_help).map(r => ({ ...r, reason: 'flagged_help' }));
+    const lowConfidence = (thisWeekRows || []).filter(r => !r.needs_help && r.confidence_rating <= 2).map(r => ({ ...r, reason: 'low_confidence' }));
+
+    // Missed both this week and last week, but had submitted at some point before that
+    const missedIds = [...everSubmittedSet].filter(id => !submittedThisWeek.has(id) && !submittedLastWeek.has(id));
+    let missed = [];
+    if (missedIds.length) {
+      const { data: missedFellows } = await supabase.from('fellows')
+        .select('id, full_name, email, fellow_id, profile_photo, tracks(name)')
+        .in('id', missedIds.slice(0, 200)).eq('status', 'approved');
+      missed = (missedFellows || []).map(f => ({ fellow_id: f.id, fellows: f, reason: 'missed_two_weeks' }));
+    }
+
+    res.json({ week_start: thisWeek, flagged_help: flaggedHelp, low_confidence: lowConfidence, missed_checkins: missed });
+  } catch (err) {
+    console.error('Checkin warnings error:', err);
+    res.status(500).json({ error: 'Failed to load early-warning list.' });
+  }
+});
+
+// ─── MENTORS ────────────────────────────────────────────────────────
+router.get('/mentors', requireRole('admin', 'super_admin'), async (req, res) => {
+  try {
+    const { data: mentors } = await supabase
+      .from('mentors')
+      .select('id, full_name, email, bio, profile_photo, track_id, is_active, last_login, created_at, tracks(name)')
+      .order('created_at', { ascending: false });
+    const { data: counts } = await supabase.from('fellows').select('mentor_id').not('mentor_id', 'is', null);
+    const tally = {};
+    (counts || []).forEach(f => { tally[f.mentor_id] = (tally[f.mentor_id] || 0) + 1; });
+    res.json((mentors || []).map(m => ({ ...m, mentee_count: tally[m.id] || 0 })));
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch mentors.' });
+  }
+});
+
+router.post('/mentors', requireRole('admin', 'super_admin'), async (req, res) => {
+  try {
+    const full_name = String(req.body?.full_name || '').replace(/[<>]/g, '').trim().slice(0, 120);
+    const email = String(req.body?.email || '').trim().toLowerCase();
+    const { password, track_id } = req.body || {};
+    const bio = String(req.body?.bio || '').trim().slice(0, 500) || null;
+    if (!full_name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ error: 'Valid name and email are required.' });
+    if (typeof password !== 'string' || password.length < 10) return res.status(400).json({ error: 'Password must be at least 10 characters.' });
+    if (track_id && !isUuid(track_id)) return res.status(400).json({ error: 'Invalid track.' });
+
+    const password_hash = await bcrypt.hash(password, bcryptCost);
+    const { data, error } = await supabase.from('mentors')
+      .insert({ full_name, email, password_hash, bio, track_id: track_id || null, is_active: true })
+      .select('id, full_name, email, track_id').single();
+    if (error) {
+      if (String(error.code) === '23505') return res.status(400).json({ error: 'A mentor with that email already exists.' });
+      throw error;
+    }
+    res.json({ success: true, data });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to create mentor.' });
+  }
+});
+
+router.patch('/mentors/:id', requireRole('admin', 'super_admin'), async (req, res) => {
+  try {
+    const updates = {};
+    if (req.body?.full_name !== undefined) updates.full_name = String(req.body.full_name).replace(/[<>]/g, '').trim().slice(0, 120);
+    if (req.body?.bio !== undefined) updates.bio = String(req.body.bio).trim().slice(0, 500) || null;
+    if (req.body?.track_id !== undefined) updates.track_id = req.body.track_id && isUuid(req.body.track_id) ? req.body.track_id : null;
+    if (req.body?.is_active !== undefined) updates.is_active = !!req.body.is_active;
+    if (typeof req.body?.password === 'string' && req.body.password) {
+      if (req.body.password.length < 10) return res.status(400).json({ error: 'Password must be at least 10 characters.' });
+      updates.password_hash = await bcrypt.hash(req.body.password, bcryptCost);
+    }
+    if (!Object.keys(updates).length) return res.status(400).json({ error: 'Nothing to update.' });
+
+    const { data, error } = await supabase.from('mentors').update(updates).eq('id', req.params.id)
+      .select('id, full_name, email, is_active').single();
+    if (error) throw error;
+    invalidateUser(req.params.id);
+    res.json({ success: true, data });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to update mentor.' });
+  }
+});
+
+router.delete('/mentors/:id', requireRole('admin', 'super_admin'), async (req, res) => {
+  try {
+    await supabase.from('mentors').update({ is_active: false }).eq('id', req.params.id);
+    invalidateUser(req.params.id);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to deactivate mentor.' });
+  }
+});
+
+// Assign: either { track_id } (bulk — every approved fellow currently on that track) or { fellow_ids: [...] } (individual)
+router.post('/mentors/:id/assign', requireRole('admin', 'super_admin'), async (req, res) => {
+  try {
+    const { track_id, fellow_ids } = req.body || {};
+    const { data: mentor } = await supabase.from('mentors').select('id, is_active').eq('id', req.params.id).maybeSingle();
+    if (!mentor || !mentor.is_active) return res.status(404).json({ error: 'Mentor not found.' });
+
+    let query = supabase.from('fellows').update({ mentor_id: mentor.id, mentor_assigned_at: new Date().toISOString() });
+    if (track_id) {
+      if (!isUuid(track_id)) return res.status(400).json({ error: 'Invalid track.' });
+      query = query.eq('track_id', track_id).eq('status', 'approved');
+    } else if (Array.isArray(fellow_ids) && fellow_ids.length) {
+      const ids = fellow_ids.filter(isUuid).slice(0, 500);
+      if (!ids.length) return res.status(400).json({ error: 'No valid fellows provided.' });
+      query = query.in('id', ids);
+    } else {
+      return res.status(400).json({ error: 'Provide a track_id or a list of fellow_ids.' });
+    }
+
+    const { data, error } = await query.select('id');
+    if (error) throw error;
+    res.json({ success: true, assigned: data?.length || 0 });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to assign mentor.' });
+  }
+});
+
+router.post('/mentors/:id/unassign', requireRole('admin', 'super_admin'), async (req, res) => {
+  try {
+    const { fellow_ids } = req.body || {};
+    const ids = Array.isArray(fellow_ids) ? fellow_ids.filter(isUuid).slice(0, 500) : [];
+    if (!ids.length) return res.status(400).json({ error: 'Provide a list of fellow_ids.' });
+    const { data, error } = await supabase.from('fellows')
+      .update({ mentor_id: null, mentor_assigned_at: null })
+      .eq('mentor_id', req.params.id).in('id', ids).select('id');
+    if (error) throw error;
+    res.json({ success: true, unassigned: data?.length || 0 });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to unassign mentor.' });
+  }
+});
+
+router.get('/mentors/:id/mentees', requireRole('admin', 'super_admin'), async (req, res) => {
+  try {
+    const { data } = await supabase.from('fellows')
+      .select('id, full_name, email, fellow_id, points, profile_photo, status, mentor_assigned_at, tracks(name)')
+      .eq('mentor_id', req.params.id)
+      .order('full_name');
+    res.json(data || []);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch mentees.' });
+  }
+});
+
+// ─── ADMINS CRUD (super_admin only) ──────────────────────────────────
 router.get('/admins', requireRole('super_admin'), async (req, res) => {
   try {
     const { data } = await supabase.from('admins').select('id, full_name, email, role, is_active, last_login, created_at');

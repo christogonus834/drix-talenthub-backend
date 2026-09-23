@@ -6,7 +6,7 @@ const supabase = require('../config/supabase');
 const CACHE_MS = 30 * 1000;
 const cache = new Map(); // key -> { ok, exp }
 
-function invalidateUser(id) { cache.delete(`fellow:${id}`); cache.delete(`admin:${id}`); }
+function invalidateUser(id) { cache.delete(`fellow:${id}`); cache.delete(`admin:${id}`); cache.delete(`mentor:${id}`); }
 
 async function stillValid(kind, id) {
   const key = `${kind}:${id}`;
@@ -18,6 +18,9 @@ async function stillValid(kind, id) {
     if (kind === 'fellow') {
       const { data } = await supabase.from('fellows').select('status').eq('id', id).single();
       ok = data?.status === 'approved';
+    } else if (kind === 'mentor') {
+      const { data } = await supabase.from('mentors').select('is_active').eq('id', id).single();
+      ok = data?.is_active === true;
     } else {
       const { data } = await supabase.from('admins').select('is_active').eq('id', id).single();
       ok = data?.is_active === true;
@@ -81,4 +84,23 @@ const requireRole = (...roles) => (req, res, next) => {
   next();
 };
 
-module.exports = { authMiddleware, adminMiddleware, requireRole, invalidateUser };
+// Mentor auth middleware
+const mentorMiddleware = async (req, res, next) => {
+  try {
+    const token = readToken(req);
+    if (!token) return res.status(401).json({ error: 'Not authenticated.' });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (decoded.role !== 'mentor') return res.status(403).json({ error: 'Access denied.' });
+
+    if (!(await stillValid('mentor', decoded.id))) {
+      return res.status(401).json({ error: 'Your session is no longer valid. Please login again.' });
+    }
+    req.mentor = decoded;
+    next();
+  } catch (err) {
+    return res.status(401).json({ error: 'Invalid or expired session. Please login again.' });
+  }
+};
+
+module.exports = { authMiddleware, adminMiddleware, mentorMiddleware, requireRole, invalidateUser };

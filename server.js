@@ -39,6 +39,7 @@ app.use('/api/admin', sec.adminAuditMiddleware);
 // ── Rate limits on sensitive endpoints ────────────────────────────────
 app.use('/api/auth/login',       sec.authLimiter);
 app.use('/api/auth/admin/login', sec.authLimiter);
+app.use('/api/auth/mentor/login', sec.authLimiter);
 app.use('/api/auth/register',    sec.registerLimiter);
 app.use('/api/payments/verify',  sec.publicWriteLimiter);
 app.use('/api/messages/contact', sec.publicWriteLimiter);
@@ -48,6 +49,8 @@ app.use('/api/fellows/unsubscribe', sec.publicWriteLimiter);
 app.use('/api/auth',               require('./routes/auth'));
 app.use('/api/fellows',            require('./routes/fellows'));
 app.use('/api/admin',              require('./routes/admin'));
+app.use('/api/mentor',             require('./routes/mentor'));
+app.use('/api/portfolio',          require('./routes/portfolio-public'));
 app.use('/api/payments',           require('./routes/payments'));
 app.use('/api/certificates',       require('./routes/certificates'));
 app.use('/api/admin/certificates', require('./routes/certificates'));

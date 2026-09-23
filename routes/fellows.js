@@ -2,8 +2,9 @@ const express = require('express');
 const router = express.Router();
 const supabase = require('../config/supabase');
 const { authMiddleware } = require('../middleware/auth');
-const { getSettings, pickPublicSettings, FELLOW_COLUMNS, safe, cleanText, esc } = require('../services/util');
+const { getSettings, pickPublicSettings, FELLOW_COLUMNS, safe, cleanText, esc, weekStart } = require('../services/util');
 const { addPoints } = require('../services/points');
+const { fellowBadgeView, BADGE_DEFS } = require('../services/badges');
 const { verifyUnsubToken } = require('../services/email');
 const { computeNextAction, loadTrackState, getEligibility, processDueUnlocks } = require('../services/progress');
 
@@ -57,7 +58,7 @@ router.get('/me', authMiddleware, async (req, res) => {
   try {
     const { data: fellow } = await supabase
       .from('fellows')
-      .select(`${FELLOW_COLUMNS}, tracks(*), cohorts(*)`)   // never password_hash
+      .select(`${FELLOW_COLUMNS}, tracks(*), cohorts(*), mentors(id, full_name, bio, profile_photo)`)   // never password_hash
       .eq('id', req.user.id)
       .single();
 
@@ -72,7 +73,9 @@ router.get('/me', authMiddleware, async (req, res) => {
       .from('assessment_results').select('*, assessments(title)').eq('fellow_id', req.user.id)
       .order('taken_at', { ascending: false });
 
-    res.json({ fellow, progress, notifications, results });
+    const badges = await fellowBadgeView(req.user.id, fellow?.points || 0);
+
+    res.json({ fellow, progress, notifications, results, badges });
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch data.' });
   }
@@ -145,7 +148,107 @@ router.patch('/email-preferences', authMiddleware, async (req, res) => {
   }
 });
 
+// ─── Weekly check-in ────────────────────────────────────────────────
+router.get('/checkin', authMiddleware, async (req, res) => {
+  try {
+    const week = weekStart();
+    const { data } = await supabase.from('weekly_checkins').select('*')
+      .eq('fellow_id', req.user.id).eq('week_start', week).maybeSingle();
+    res.json({ week_start: week, checkin: data || null });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to load check-in status.' });
+  }
+});
+
+router.post('/checkin', authMiddleware, async (req, res) => {
+  try {
+    const confidence_rating = Number(req.body?.confidence_rating);
+    let hours_studied = Number(req.body?.hours_studied);
+    const needs_help = !!req.body?.needs_help;
+    const note = req.body?.note ? cleanText(req.body.note, 1000) : null;
+
+    if (!Number.isFinite(confidence_rating) || confidence_rating < 1 || confidence_rating > 5) {
+      return res.status(400).json({ error: 'Confidence rating must be between 1 and 5.' });
+    }
+    if (!Number.isFinite(hours_studied) || hours_studied < 0) hours_studied = 0;
+    if (hours_studied > 168) hours_studied = 168;
+
+    const week = weekStart();
+    const { data, error } = await supabase.from('weekly_checkins')
+      .upsert({ fellow_id: req.user.id, week_start: week, confidence_rating, hours_studied, needs_help, note, submitted_at: new Date().toISOString() },
+        { onConflict: 'fellow_id,week_start' })
+      .select().single();
+    if (error) throw error;
+
+    if (needs_help) {
+      await safe(supabase.from('notifications').insert({
+        fellow_id: req.user.id, title: 'We got your flag',
+        message: "You marked that you need help this week. Your mentor or an admin will reach out soon.",
+        type: 'info',
+      }), 'notif');
+    }
+
+    res.json({ success: true, checkin: data });
+  } catch (err) {
+    console.error('Checkin error:', err);
+    res.status(500).json({ error: 'Failed to save check-in.' });
+  }
+});
+
+// ─── Portfolio ──────────────────────────────────────────────────────
+router.get('/portfolio', authMiddleware, async (req, res) => {
+  try {
+    const { data: fellow } = await supabase.from('fellows').select('portfolio_slug, portfolio_public').eq('id', req.user.id).single();
+    const { data: subs } = await supabase.from('assignment_submissions')
+      .select('id, content, file_url, grade, feedback, submitted_at, is_public, assignments(title, max_score)')
+      .eq('fellow_id', req.user.id).eq('status', 'graded')
+      .order('submitted_at', { ascending: false });
+    res.json({ portfolio_slug: fellow?.portfolio_slug || null, portfolio_public: fellow?.portfolio_public || false, submissions: subs || [] });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to load portfolio.' });
+  }
+});
+
+router.patch('/portfolio-settings', authMiddleware, async (req, res) => {
+  try {
+    const updates = {};
+    if (req.body?.portfolio_public !== undefined) updates.portfolio_public = !!req.body.portfolio_public;
+    if (req.body?.slug !== undefined) {
+      const slug = String(req.body.slug).toLowerCase().trim().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').slice(0, 60);
+      if (!slug || slug.length < 3) return res.status(400).json({ error: 'Pick a slug with at least 3 letters/numbers.' });
+      updates.portfolio_slug = slug;
+    }
+    if (!Object.keys(updates).length) return res.status(400).json({ error: 'Nothing to update.' });
+
+    const { data, error } = await supabase.from('fellows').update(updates).eq('id', req.user.id)
+      .select('portfolio_slug, portfolio_public').single();
+    if (error) {
+      if (String(error.code) === '23505') return res.status(400).json({ error: 'That link is already taken — try another.' });
+      throw error;
+    }
+    res.json({ success: true, ...data });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to update portfolio settings.' });
+  }
+});
+
+router.patch('/submissions/:id/portfolio', authMiddleware, async (req, res) => {
+  try {
+    const is_public = !!req.body?.is_public;
+    const { data: sub } = await supabase.from('assignment_submissions').select('fellow_id, status').eq('id', req.params.id).single();
+    if (!sub || sub.fellow_id !== req.user.id) return res.status(404).json({ error: 'Submission not found.' });
+    if (sub.status !== 'graded') return res.status(400).json({ error: 'Only approved, graded work can be added to your portfolio.' });
+    const { error } = await supabase.from('assignment_submissions').update({ is_public }).eq('id', req.params.id);
+    if (error) throw error;
+    res.json({ success: true, is_public });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to update.' });
+  }
+});
+
 // ─── Leaderboard ──────────────────────────────────────────────────────
+router.get('/badge-defs', (req, res) => res.json(BADGE_DEFS));
+
 router.get('/leaderboard', authMiddleware, async (req, res) => {
   try {
     const { data } = await supabase
