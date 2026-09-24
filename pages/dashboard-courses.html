@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>My Courses — Drix Tech Talent</title>
+<link rel="stylesheet" href="/css/style.css"/>
+<style>
+.lesson-viewer{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rxl);overflow:hidden;margin-top:20px;display:none;}
+.lesson-viewer.show{display:block;}
+.video-wrap{position:relative;width:100%;padding-top:56.25%;background:#000;}
+.video-wrap video{position:absolute;inset:0;width:100%;height:100%;}
+.pdf-wrap{width:100%;height:600px;border:none;}
+.doc-wrap{padding:24px;font-size:0.9rem;line-height:1.8;color:var(--text2);}
+.module-block.locked{opacity:0.62;}
+.module-block.locked .module-header{cursor:not-allowed;}
+.lock-badge{display:inline-flex;align-items:center;gap:4px;font-size:0.64rem;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;background:rgba(244,63,94,0.1);color:#F87171;border:1px solid rgba(244,63,94,0.2);border-radius:50px;padding:2px 9px;margin-left:8px;}
+.module-deadline{font-size:0.68rem;color:#FBBF24;margin-top:3px;}
+.assign-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-top:1px solid var(--border);}
+.assign-row .badge{flex-shrink:0;}
+.submit-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:none;align-items:center;justify-content:center;z-index:200;padding:20px;}
+.submit-overlay.show{display:flex;}
+.submit-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rxl);max-width:520px;width:100%;padding:26px;}
+</style>
+</head>
+<body>
+<div class="layout">
+<aside class="sidebar">
+  <div class="sidebar-logo">DRIX Tech Talent<span>Fellow Portal</span></div>
+  <nav class="sidebar-nav">
+    <div class="sidebar-section-label">Main</div>
+    <a href="/dashboard" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>Dashboard</a>
+    <a href="/dashboard/courses" class="sidebar-link active"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span>My Courses</a>
+    <a href="/dashboard/community" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>Community</a>
+    <a href="/dashboard/leaderboard" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg></span>Leaderboard</a>
+    <div class="sidebar-section-label">Account</div>
+    <a href="/dashboard/certificates" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg></span>Certificates</a>
+    <a href="/dashboard/messages" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></span>Messages</a>
+    <a href="/dashboard/profile" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>My Profile</a>
+  </nav>
+  <div class="sidebar-bottom"><button onclick="logout()" class="btn btn-outline w-full btn-sm">Sign Out</button></div>
+</aside>
+
+<main class="main-content">
+  <div class="flex-between mb-6">
+    <div><h1 style="font-size:1.5rem;font-weight:800;letter-spacing:-0.03em;">My Courses</h1><p style="color:var(--muted);font-size:0.82rem;margin-top:3px;" id="trackLabel">Loading track...</p></div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span id="overallProgress" style="font-size:0.82rem;color:var(--muted);">0% complete</span>
+    </div>
+  </div>
+
+  <!-- MODULES LIST -->
+  <div id="modulesList"><div class="flex-center" style="padding:60px;"><span class="loader"></span></div></div>
+
+  <!-- LESSON VIEWER -->
+  <div class="lesson-viewer" id="lessonViewer">
+    <div style="padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <div style="font-size:0.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:3px;" id="viewerModule">—</div>
+        <div style="font-weight:700;font-size:1rem;" id="viewerTitle">—</div>
+      </div>
+      <button class="btn btn-outline btn-sm" onclick="closeViewer()">Close</button>
+    </div>
+
+    <div id="viewerContent"></div>
+
+    <!-- AI ASSISTANT -->
+    <div style="padding:20px 24px;border-top:1px solid var(--border);">
+      <div class="ai-box">
+        <div class="ai-header">
+          <div class="ai-indicator"></div>
+          <span style="font-size:0.8rem;font-weight:600;">AI Learning Assistant</span>
+          <span style="font-size:0.72rem;color:var(--muted);margin-left:auto;">Ask anything about this lesson</span>
+        </div>
+        <div class="ai-messages" id="aiMessages">
+          <div class="ai-msg assistant">
+            <div class="ai-bubble">Hello! I am your AI learning assistant. Ask me anything about this lesson or the topic you are studying.</div>
+          </div>
+        </div>
+        <div class="ai-input-row">
+          <input class="ai-input" id="aiInput" placeholder="Ask a question about this lesson..." onkeydown="if(event.key==='Enter')askAI()"/>
+          <button class="ai-send" onclick="askAI()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- COMPLETE BUTTON -->
+    <div style="padding:16px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px;">
+      <button class="btn btn-success" id="completeBtn" onclick="markComplete()">
+        <span class="icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></span>
+        Mark as Complete
+      </button>
+    </div>
+  </div>
+</main>
+
+<div class="submit-overlay" id="submitOverlay">
+  <div class="submit-box">
+    <div class="flex-between mb-4">
+      <h3 style="font-size:1rem;font-weight:700;" id="submitTitle">Submit assignment</h3>
+      <button class="btn btn-outline btn-sm" onclick="closeSubmit()">✕</button>
+    </div>
+    <div id="submitFeedbackBox"></div>
+    <p style="font-size:0.8rem;color:var(--muted);margin-bottom:14px;" id="submitInstructions"></p>
+    <div class="form-group">
+      <label class="form-label">Your answer</label>
+      <textarea class="form-input" id="submitContent" rows="5" placeholder="Write your answer here…"></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Or a link to your work (optional)</label>
+      <input class="form-input" id="submitFileUrl" placeholder="https://…"/>
+    </div>
+    <div id="submitAlert" class="alert alert-error"></div>
+    <button class="btn btn-primary w-full" id="submitBtn" onclick="doSubmitAssignment()">Submit</button>
+  </div>
+</div>
+</div>
+
+<script src="/js/app.js"></script>
+<script src="/js/mobile.js"></script>
+<script>
+if (!auth.getToken()) window.location.href = '/login';
+
+let currentLessonId = null;
+let currentLessonContext = '';
+let fellowTrackId = null;
+
+async function loadCourses() {
+  const meData = await api.get('/api/fellows/me');
+  if (!meData) return;
+  fellowTrackId = meData.fellow?.track_id;
+  document.getElementById('trackLabel').textContent = meData.fellow?.tracks?.name || 'Your Track';
+
+  if (!fellowTrackId) {
+    document.getElementById('modulesList').innerHTML = '<div class="card empty-state"><p>No track assigned yet. Contact admin.</p></div>';
+    return;
+  }
+
+  const modules = await api.get(`/api/modules/track/${fellowTrackId}`);
+  window.allModules = modules || [];
+  if (!modules?.length) {
+    document.getElementById('modulesList').innerHTML = '<div class="card empty-state"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg><h3>No content yet</h3><p>Your admin has not added lessons yet. Check back soon.</p></div>';
+    return;
+  }
+
+  // Count totals — locked modules return no lessons, so they don't skew progress
+  let totalLessons = 0, doneLessons = 0;
+  modules.forEach(m => {
+    totalLessons += (m.lessons||[]).length;
+    doneLessons += (m.lessons||[]).filter(l => l.fellow_lesson_progress?.some(p => p.completed)).length;
+  });
+  const pct = totalLessons > 0 ? Math.round((doneLessons/totalLessons)*100) : 0;
+  document.getElementById('overallProgress').textContent = `${pct}% complete`;
+
+  function fmtUnlock(iso) {
+    if (!iso) return '';
+    const d = new Date(iso), diff = d - new Date();
+    if (diff > 0 && diff < 6*86400000) {
+      const days = Math.ceil(diff/86400000);
+      return `Unlocks in ${days} day${days===1?'':'s'}`;
+    }
+    return `Unlocks ${d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}`;
+  }
+
+  document.getElementById('modulesList').innerHTML = modules.map((m, i) => `
+    <div class="module-block animate-fade ${m.is_locked?'locked':''}" style="animation-delay:${i*0.06}s;">
+      <div class="module-header" onclick="${m.is_locked?'':`toggleModule('mod-${m.id}')`}">
+        <div class="module-num">${i+1}</div>
+        <div style="flex:1;">
+          <div style="font-weight:700;font-size:0.9rem;">${m.title}${m.is_locked ? `<span class="lock-badge">🔒 Locked</span>` : ''}</div>
+          ${m.description ? `<div style="font-size:0.74rem;color:var(--muted);margin-top:2px;">${m.description}</div>` : ''}
+          ${m.is_locked
+            ? `<div class="module-deadline">${m.lock_reason === 'admin' ? 'Locked by admin' : fmtUnlock(m.unlocks_at)}</div>`
+            : `<div style="margin-top:6px;">
+                <div class="progress-bar" style="width:160px;display:inline-block;">
+                  <div class="progress-fill" style="width:${calcModuleProgress(m)}%"></div>
+                </div>
+                <span style="font-size:0.68rem;color:var(--muted);margin-left:8px;">${calcModuleProgress(m)}%</span>
+                ${m.deadline_at ? `<span class="module-deadline" style="margin-left:10px;display:inline;">Deadline: ${new Date(m.deadline_at).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</span>` : ''}
+              </div>`}
+        </div>
+        ${m.is_locked ? '' : `<span class="icon-sm" style="color:var(--muted);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span>`}
+      </div>
+      ${m.is_locked ? '' : `
+      <div id="mod-${m.id}" class="module-lessons" style="display:none;">
+        ${(m.lessons||[]).map(l => {
+          const done = l.fellow_lesson_progress?.some(p => p.completed);
+          const typeIcon = {
+            video: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>',
+            pdf: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
+            document: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
+            audio: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/></svg>',
+            quiz: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+            link: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>'
+          };
+          const typeColor = { video:'lesson-type-video', pdf:'lesson-type-pdf', document:'lesson-type-document', audio:'lesson-type-quiz', quiz:'lesson-type-quiz', article:'lesson-type-document', link:'lesson-type-video' };
+          return `
+            <div class="lesson-row ${done?'completed':''}" onclick="openLesson('${l.id}','${l.title.replace(/'/g,"\\'")}','${m.title.replace(/'/g,"\\'")}','${l.type}','${l.content_url||''}','${l.content_text||''}')">
+              <div class="lesson-type-icon ${typeColor[l.type]||'lesson-type-document'}">${typeIcon[l.type]||typeIcon.document}</div>
+              <div style="flex:1;">
+                <div class="lesson-title" style="font-size:0.84rem;font-weight:600;">${l.title}</div>
+                <div style="font-size:0.72rem;color:var(--muted);">${l.type} · ${l.duration_minutes} min · ${l.points_reward} pts</div>
+              </div>
+              ${done
+                ? `<span class="icon-sm" style="color:var(--brand-accent);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></span>`
+                : `<span class="badge badge-info" style="font-size:0.66rem;">Start</span>`}
+            </div>`;
+        }).join('')}
+        ${(m.assignments||[]).map(a => {
+          const sub = a.my_submission;
+          const status = sub ? sub.status : 'not_submitted';
+          const badge = { graded: '<span class="badge badge-approved">Approved</span>', returned: '<span class="badge badge-danger">Needs revision</span>', submitted: '<span class="badge badge-pending">Submitted</span>', not_submitted: '<span class="badge badge-info">Assignment</span>' }[status];
+          const overdue = a.deadline_at && new Date(a.deadline_at) < new Date() && status !== 'graded';
+          return `
+            <div class="assign-row" id="assign-${a.id}">
+              ${badge}
+              <div style="flex:1;">
+                <div style="font-size:0.84rem;font-weight:600;">${a.title}</div>
+                <div style="font-size:0.7rem;color:${overdue?'#F87171':'var(--muted)'};">${a.deadline_at ? (overdue?'Overdue — was due ':'Due ') + new Date(a.deadline_at).toLocaleDateString('en-GB',{day:'numeric',month:'short'}) : 'No deadline'}${sub && sub.grade!=null ? ` · ${sub.grade}/${a.max_score}` : ''}</div>
+              </div>
+              <button class="btn btn-outline btn-sm" onclick="openAssignment('${a.id}')">${status==='not_submitted'?'Submit':status==='returned'?'Resubmit':'View'}</button>
+            </div>`;
+        }).join('')}
+      </div>`}
+    </div>`).join('');
+
+  // If we arrived via a "Do This Next" / feedback link, jump straight to it
+  const qp = new URLSearchParams(location.search);
+  if (qp.get('lesson')) {
+    const l = modules.flatMap(m => m.lessons||[]).find(x => x.id === qp.get('lesson'));
+    const mod = modules.find(m => (m.lessons||[]).some(x => x.id === qp.get('lesson')));
+    if (l && mod) { toggleModule('mod-'+mod.id); openLesson(l.id, l.title, mod.title, l.type, l.content_url||'', l.content_text||''); }
+  } else if (qp.get('module')) {
+    toggleModule('mod-'+qp.get('module'));
+    if (qp.get('assignment')) setTimeout(() => { openAssignment(qp.get('assignment')); document.getElementById('assign-'+qp.get('assignment'))?.scrollIntoView({behavior:'smooth',block:'center'}); }, 200);
+  }
+}
+
+function calcModuleProgress(m) {
+  const total = (m.lessons||[]).length;
+  if (!total) return 0;
+  const done = (m.lessons||[]).filter(l => l.fellow_lesson_progress?.some(p => p.completed)).length;
+  return Math.round((done/total)*100);
+}
+
+function toggleModule(id) {
+  const el = document.getElementById(id);
+  if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function openLesson(id, title, moduleTitle, type, contentUrl, contentText) {
+  currentLessonId = id;
+  currentLessonContext = `Lesson: ${title}, Module: ${moduleTitle}, Type: ${type}`;
+
+  document.getElementById('viewerTitle').textContent = title;
+  document.getElementById('viewerModule').textContent = moduleTitle;
+
+  // Render content based on type
+  let html = '';
+  if (type === 'video' && contentUrl) {
+    html = `<div class="video-wrap"><video controls src="${contentUrl}"></video></div>`;
+  } else if (type === 'pdf' && contentUrl) {
+    html = `<iframe class="pdf-wrap" src="${contentUrl}" title="${title}"></iframe>`;
+  } else if ((type === 'document') && contentUrl) {
+    html = `<div class="doc-wrap">
+      <p style="margin-bottom:16px;color:var(--muted);">This document is available for download.</p>
+      <a href="${contentUrl}" target="_blank" download class="btn btn-primary">
+        <span class="icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span>
+        Download Document
+      </a>
+    </div>`;
+  } else if (type === 'audio' && contentUrl) {
+    html = `<div class="doc-wrap"><audio controls style="width:100%;margin-top:8px;" src="${contentUrl}"></audio></div>`;
+  } else if (type === 'article' && contentText) {
+    html = `<div class="doc-wrap">${contentText.replace(/\n/g,'<br>')}</div>`;
+  } else if (type === 'link' && contentUrl) {
+    html = `<div class="doc-wrap" style="text-align:center;padding:40px 20px;">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--brand-primary)" stroke-width="1.5" style="margin-bottom:16px;"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+      <p style="margin-bottom:20px;color:var(--muted);">This lesson links to an external resource.</p>
+      <a href="${contentUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-primary">
+        <span class="icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span>
+        Open Link
+      </a>
+    </div>`;
+  } else {
+    html = `<div class="doc-wrap empty-state"><p>Content not available yet</p></div>`;
+  }
+
+  document.getElementById('viewerContent').innerHTML = html;
+  document.getElementById('lessonViewer').classList.add('show');
+  document.getElementById('aiMessages').innerHTML = '<div class="ai-msg assistant"><div class="ai-bubble">Hello! I am your AI learning assistant. Ask me anything about <strong>' + title + '</strong>.</div></div>';
+
+  // Scroll to viewer
+  document.getElementById('lessonViewer').scrollIntoView({ behavior: 'smooth' });
+
+  // Mark as started in backend
+  api.get(`/api/modules/lesson/${id}`);
+}
+
+function closeViewer() {
+  document.getElementById('lessonViewer').classList.remove('show');
+  currentLessonId = null;
+}
+
+async function markComplete() {
+  if (!currentLessonId) return;
+  const btn = document.getElementById('completeBtn');
+  btn.disabled = true; btn.innerHTML = '<span class="loader"></span>';
+  const r = await api.post(`/api/modules/lesson/${currentLessonId}/complete`, {});
+  if (r?.success) {
+    showToast('Lesson completed! Points awarded.', 'success');
+    closeViewer();
+    loadCourses();
+  } else {
+    showToast(r?.error || 'Failed', 'error');
+    btn.disabled = false;
+    btn.innerHTML = '<span class="icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></span> Mark as Complete';
+  }
+}
+
+function askAI() {
+  sendAIMessage('aiInput', 'aiMessages', currentLessonContext);
+}
+
+let currentAssignment = null;
+
+function openAssignment(assignmentId) {
+  const mod = (window.allModules||[]).find(m => (m.assignments||[]).some(a => a.id === assignmentId));
+  const a = mod?.assignments.find(x => x.id === assignmentId);
+  if (!a) return;
+  currentAssignment = a;
+  document.getElementById('submitTitle').textContent = a.title;
+  document.getElementById('submitInstructions').textContent = a.instructions || a.description || '';
+  document.getElementById('submitAlert').classList.remove('show');
+  const sub = a.my_submission;
+  const box = document.getElementById('submitFeedbackBox');
+  if (sub && (sub.status === 'graded' || sub.status === 'returned')) {
+    box.innerHTML = `<div class="alert ${sub.status==='graded'?'alert-success':'alert-info'} show">
+      <strong>${sub.status==='graded'?'Approved':'Needs revision'}${sub.grade!=null?` — ${sub.grade}/${a.max_score}`:''}</strong>
+      ${sub.feedback ? `<div style="margin-top:4px;">${sub.feedback}</div>` : ''}
+    </div>`;
+  } else { box.innerHTML = ''; }
+  document.getElementById('submitContent').value = sub?.content || '';
+  document.getElementById('submitFileUrl').value = sub?.file_url || '';
+  const btn = document.getElementById('submitBtn');
+  if (sub?.status === 'graded') { btn.disabled = true; btn.textContent = 'Already approved'; }
+  else { btn.disabled = false; btn.textContent = sub ? 'Resubmit' : 'Submit'; }
+  document.getElementById('submitOverlay').classList.add('show');
+}
+
+function closeSubmit() {
+  document.getElementById('submitOverlay').classList.remove('show');
+  currentAssignment = null;
+}
+
+async function doSubmitAssignment() {
+  if (!currentAssignment) return;
+  const content = document.getElementById('submitContent').value.trim();
+  const file_url = document.getElementById('submitFileUrl').value.trim();
+  const alertBox = document.getElementById('submitAlert');
+  if (!content && !file_url) { alertBox.textContent = 'Add your answer or a link to your work.'; alertBox.classList.add('show'); return; }
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true; btn.innerHTML = '<span class="loader"></span>';
+  const r = await api.post(`/api/modules/${currentAssignment.id}/submit`, { content, file_url });
+  if (r?.success) {
+    showToast('Assignment submitted!', 'success');
+    closeSubmit();
+    loadCourses();
+  } else {
+    alertBox.textContent = r?.error || 'Failed to submit.'; alertBox.classList.add('show');
+    btn.disabled = false; btn.textContent = 'Submit';
+  }
+}
+
+loadCourses();
+</script>
+</body>
+</html>

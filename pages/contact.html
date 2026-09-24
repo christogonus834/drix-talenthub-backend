@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Contact Us — Drix Tech Talent</title>
+<link rel="stylesheet" href="/css/style.css"/>
+<style>
+body{padding-top:64px;}
+.contact-wrap{max-width:1000px;margin:0 auto;padding:60px 24px;}
+.contact-grid{display:grid;grid-template-columns:1fr 1.4fr;gap:48px;}
+.info-item{display:flex;align-items:flex-start;gap:14px;margin-bottom:28px;}
+.info-icon{width:42px;height:42px;border-radius:10px;background:rgba(124,110,247,0.1);border:1px solid rgba(124,110,247,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--brand-primary);}
+.info-label{font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted2);margin-bottom:4px;}
+.info-value{font-size:0.88rem;color:var(--text2);line-height:1.6;}
+@media(max-width:700px){.contact-grid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<nav class="navbar">
+  <a href="/" class="nav-logo">DRIX<span> Tech Talent</span></a>
+  <div class="nav-links">
+    <a href="/">Home</a><a href="/terms">Terms</a>
+    <a href="/login">Login</a>
+    <a href="/register" class="btn btn-primary btn-sm">Apply Now</a>
+  </div>
+</nav>
+
+<div class="contact-wrap">
+  <div style="margin-bottom:48px;">
+    <div class="section-tag">Get in Touch</div>
+    <h1 style="font-size:2rem;font-weight:900;letter-spacing:-0.03em;margin-top:12px;margin-bottom:10px;">Contact Us</h1>
+    <p style="color:var(--muted);font-size:0.92rem;">Have a question about the programme? We are here to help.</p>
+  </div>
+
+  <div class="contact-grid">
+    <!-- LEFT: Info -->
+    <div>
+      <div class="info-item">
+        <div class="info-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        </div>
+        <div>
+          <div class="info-label">Email</div>
+          <div class="info-value">admin@drixtechtalent.com</div>
+          <div class="info-value" style="margin-top:2px;">support@drixtechtalent.com</div>
+        </div>
+      </div>
+
+      <div class="info-item">
+        <div class="info-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        </div>
+        <div>
+          <div class="info-label">Location</div>
+          <div class="info-value">Nigeria (Remote-first programme)<br/>Open to all 36 states + FCT</div>
+        </div>
+      </div>
+
+      <div class="info-item">
+        <div class="info-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <div>
+          <div class="info-label">Response Time</div>
+          <div class="info-value">Within 24–48 hours on business days</div>
+        </div>
+      </div>
+
+      <div class="info-item">
+        <div class="info-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <div>
+          <div class="info-label">Sponsor</div>
+          <div class="info-value">ePayBillz Telecomm<br/><span style="font-size:0.78rem;color:var(--muted2);">Proudly powering this fellowship</span></div>
+        </div>
+      </div>
+
+      <div style="margin-top:32px;padding:20px;background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);">
+        <div style="font-size:0.78rem;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:12px;">Already a Fellow?</div>
+        <p style="font-size:0.82rem;color:var(--muted);margin-bottom:14px;">Log in and use the Messages section in your dashboard to contact admin directly.</p>
+        <a href="/login" class="btn btn-outline btn-sm" style="width:100%;justify-content:center;">Go to Dashboard</a>
+      </div>
+    </div>
+
+    <!-- RIGHT: Form -->
+    <div class="card">
+      <h3 style="font-size:1rem;font-weight:700;margin-bottom:20px;">Send a Message</h3>
+      <div id="formAlert" class="alert"></div>
+      <div class="grid-2">
+        <div class="form-group"><label class="form-label">First Name *</label><input type="text" class="form-control" id="firstName" placeholder="John"/></div>
+        <div class="form-group"><label class="form-label">Last Name *</label><input type="text" class="form-control" id="lastName" placeholder="Doe"/></div>
+      </div>
+      <div class="form-group"><label class="form-label">Email Address *</label><input type="email" class="form-control" id="contactEmail" placeholder="you@example.com"/></div>
+      <div class="form-group"><label class="form-label">Subject *</label>
+        <select class="form-control" id="contactSubject">
+          <option value="">Select a topic</option>
+          <option>Application / Registration</option>
+          <option>Course Content</option>
+          <option>Certificate</option>
+          <option>Technical Issue</option>
+          <option>Payment</option>
+          <option>Partnership / Sponsorship</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Message *</label><textarea class="form-control" id="contactMessage" rows="5" placeholder="Tell us how we can help..."></textarea></div>
+      <button class="btn btn-primary w-full" onclick="sendContact()" id="contactBtn" style="height:46px;">Send Message</button>
+    </div>
+  </div>
+</div>
+
+<footer style="border-top:1px solid var(--border);padding:24px 56px;display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:0.8rem;flex-wrap:wrap;gap:12px;margin-top:60px;">
+  <div>Drix Software Foundation © 2026 · Sponsored by ePayBillz Telecomm</div>
+  <div style="display:flex;gap:20px;"><a href="/terms" style="color:var(--muted);">Terms</a><a href="/contact" style="color:var(--muted);">Contact</a><a href="/verify" style="color:var(--muted);">Verify Certificate</a></div>
+</footer>
+
+<script src="/js/app.js"></script>
+<script>
+async function sendContact() {
+  const btn = document.getElementById('contactBtn');
+  const alert = document.getElementById('formAlert');
+  const firstName = document.getElementById('firstName').value.trim();
+  const lastName = document.getElementById('lastName').value.trim();
+  const email = document.getElementById('contactEmail').value.trim();
+  const subject = document.getElementById('contactSubject').value;
+  const message = document.getElementById('contactMessage').value.trim();
+
+  if (!firstName || !email || !subject || !message) {
+    alert.className = 'alert alert-error show';
+    alert.textContent = 'Please fill in all required fields.';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="loader"></span> Sending...';
+
+  // Send to backend as a public message (no auth required for contact form)
+  try {
+    const res = await fetch(API_BASE + '/api/messages/contact', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: `${firstName} ${lastName}`,
+        email, subject, message
+      })
+    });
+    const data = await res.json();
+    if (data.success) {
+      document.querySelector('.card').innerHTML = `
+        <div style="text-align:center;padding:40px 20px;">
+          <div style="width:64px;height:64px;border-radius:50%;background:rgba(6,214,160,0.1);border:2px solid rgba(6,214,160,0.3);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--brand-accent)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <h3 style="font-size:1.1rem;font-weight:700;margin-bottom:8px;">Message Sent!</h3>
+          <p style="color:var(--muted);font-size:0.86rem;">Thank you for reaching out. We will get back to you within 24–48 hours.</p>
+        </div>`;
+    } else {
+      alert.className = 'alert alert-error show';
+      alert.textContent = data.error || 'Failed to send. Please email us directly.';
+      btn.disabled = false;
+      btn.textContent = 'Send Message';
+    }
+  } catch(e) {
+    alert.className = 'alert alert-error show';
+    alert.textContent = 'Network error. Please email admin@drixtechtalent.com directly.';
+    btn.disabled = false;
+    btn.textContent = 'Send Message';
+  }
+}
+</script>
+</body>
+</html>

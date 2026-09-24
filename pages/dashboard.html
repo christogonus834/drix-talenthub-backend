@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Dashboard — Drix Tech Talent</title>
+<link rel="stylesheet" href="/css/style.css"/>
+<style>
+.welcome-banner{background:linear-gradient(135deg,rgba(124,110,247,0.1),rgba(6,214,160,0.04));border:1px solid rgba(124,110,247,0.15);border-radius:var(--rxl);padding:28px 32px;margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;gap:20px;position:relative;overflow:hidden;}
+.welcome-banner::before{content:'';position:absolute;top:-40px;right:-40px;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(124,110,247,0.12),transparent 70%);pointer-events:none;}
+.quick-action{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:20px;text-align:center;cursor:pointer;transition:var(--trans);text-decoration:none;color:var(--text);display:flex;flex-direction:column;align-items:center;gap:10px;}
+.quick-action:hover{border-color:var(--border3);transform:translateY(-3px);box-shadow:var(--glow);}
+.quick-action svg{color:var(--brand-primary);}
+.quick-action-label{font-size:0.76rem;font-weight:600;color:var(--muted);}
+.notif-dot{width:8px;height:8px;border-radius:50%;background:var(--brand-primary);flex-shrink:0;}
+.notif-dot.read{background:var(--surface3);border:1px solid var(--border2);}
+.cert-cta{background:linear-gradient(135deg,rgba(6,214,160,0.08),rgba(6,214,160,0.02));border:1px solid rgba(6,214,160,0.2);border-radius:var(--rl);padding:20px 24px;display:none;align-items:center;gap:16px;margin-top:20px;}
+.cert-cta.show{display:flex;}
+.next-card{background:linear-gradient(135deg,rgba(124,110,247,0.1),rgba(124,110,247,0.02));border:1px solid rgba(124,110,247,0.25);border-radius:var(--rxl);padding:22px 26px;margin-bottom:24px;display:flex;align-items:center;gap:18px;}
+.next-card .nc-icon{width:44px;height:44px;border-radius:12px;background:rgba(124,110,247,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--brand-primary);}
+.next-card .nc-label{font-size:0.68rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--brand-secondary);margin-bottom:3px;}
+.next-card .nc-title{font-size:1rem;font-weight:700;}
+.next-card .nc-sub{font-size:0.78rem;color:var(--muted);margin-top:2px;}
+.next-card .nc-deadline{font-size:0.72rem;color:#FBBF24;margin-top:4px;font-weight:600;}
+.next-card .nc-deadline.overdue{color:#F87171;}
+.next-card.caught-up{border-color:rgba(6,214,160,0.25);background:linear-gradient(135deg,rgba(6,214,160,0.08),rgba(6,214,160,0.02));}
+.next-card.caught-up .nc-icon{background:rgba(6,214,160,0.15);color:var(--brand-accent);}
+.fb-band{border-radius:var(--r);padding:2px 8px;font-size:0.66rem;font-weight:700;display:inline-block;}
+.fb-band.good{background:rgba(6,214,160,0.12);color:#06D6A0;}
+.fb-band.mid{background:rgba(124,110,247,0.12);color:var(--brand-secondary);}
+.fb-band.low{background:rgba(251,191,36,0.12);color:#FBBF24;}
+.ann-item{border-bottom:1px solid var(--border);padding:12px 0;}
+.ann-item:last-child{border-bottom:none;}
+.ann-item summary{cursor:pointer;font-weight:700;font-size:0.86rem;list-style:none;display:flex;align-items:center;gap:8px;}
+.ann-item summary::-webkit-details-marker{display:none;}
+.ann-item summary::before{content:'▸';color:var(--muted);transition:transform .15s;}
+.ann-item[open] summary::before{transform:rotate(90deg);}
+.ann-item .ann-body{font-size:0.8rem;color:var(--muted);margin-top:8px;padding-left:16px;white-space:pre-wrap;line-height:1.5;}
+.ann-item .ann-date{font-size:0.68rem;color:var(--muted2);margin-left:auto;font-weight:500;}
+</style>
+</head>
+<body>
+<div class="layout">
+<aside class="sidebar">
+  <div class="sidebar-logo">DRIX Tech Talent<span>Fellow Portal</span></div>
+  <nav class="sidebar-nav">
+    <div class="sidebar-section-label">Main</div>
+    <a href="/dashboard" class="sidebar-link active"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>Dashboard</a>
+    <a href="/dashboard/courses" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span>My Courses</a>
+    <a href="/dashboard/community" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>Community</a>
+    <a href="/dashboard/leaderboard" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg></span>Leaderboard</a>
+    <div class="sidebar-section-label">Account</div>
+    <a href="/dashboard/certificates" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg></span>Certificates</a>
+    <a href="/dashboard/messages" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></span>Messages</a>
+    <a href="/dashboard/profile" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>My Profile</a>
+  </nav>
+  <div class="sidebar-bottom">
+    <button onclick="logout()" class="btn btn-outline w-full btn-sm" style="gap:8px;">
+      <span class="icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></span>
+      Sign Out
+    </button>
+  </div>
+</aside>
+
+<main class="main-content">
+  <!-- WELCOME -->
+  <div class="welcome-banner">
+    <div style="display:flex;align-items:center;gap:18px;">
+      <div class="avatar avatar-lg" id="avatarEl">?</div>
+      <div>
+        <div style="font-size:0.76rem;color:var(--muted);margin-bottom:4px;">Welcome back</div>
+        <h2 style="font-size:1.4rem;font-weight:800;letter-spacing:-0.02em;" id="fellowName">Loading...</h2>
+        <div style="font-size:0.78rem;color:var(--muted);margin-top:4px;" id="trackBadge">—</div>
+      </div>
+    </div>
+    <div style="text-align:right;">
+      <div style="font-family:var(--mono);font-size:0.72rem;background:rgba(124,110,247,0.1);border:1px solid rgba(124,110,247,0.2);color:var(--brand-secondary);padding:5px 12px;border-radius:6px;" id="fellowIdEl">—</div>
+      <div style="margin-top:8px;font-size:0.82rem;color:var(--muted);"><span style="color:var(--brand-warning);font-weight:700;" id="pointsEl">0</span> points earned</div>
+    </div>
+  </div>
+
+  <!-- DO THIS NEXT -->
+  <div class="next-card" id="nextCard" style="display:none;"></div>
+
+  <!-- WEEKLY CHECK-IN -->
+  <div class="next-card" id="checkinCard" style="display:none;border-color:rgba(6,214,160,0.25);background:linear-gradient(135deg,rgba(6,214,160,0.08),rgba(6,214,160,0.02));">
+    <div class="nc-icon" style="background:rgba(6,214,160,0.15);color:var(--brand-accent);">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+    </div>
+    <div style="flex:1;">
+      <div class="nc-label" style="color:var(--brand-accent);">Quick check-in</div>
+      <div class="nc-title">How's this week going?</div>
+      <div class="nc-sub">Takes 20 seconds — helps us know who needs support.</div>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="openModal('checkinModal')">Check In</button>
+  </div>
+
+  <!-- QUICK ACTIONS -->
+  <div class="grid-4 mb-6">
+    <a href="/dashboard/courses" class="quick-action">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      <div class="quick-action-label">My Courses</div>
+    </a>
+    <a href="/dashboard/leaderboard" class="quick-action">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+      <div class="quick-action-label">Leaderboard</div>
+    </a>
+    <a href="/dashboard/certificates" class="quick-action">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>
+      <div class="quick-action-label">Certificates</div>
+    </a>
+    <a href="/dashboard/messages" class="quick-action">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+      <div class="quick-action-label">Messages</div>
+    </a>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--brand-primary)" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div><div class="stat-value" id="statTotal">—</div><div class="stat-label">Total Lessons</div></div>
+    <div class="stat-card"><div class="stat-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--brand-accent)" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></div><div class="stat-value" id="statDone">—</div><div class="stat-label">Completed</div></div>
+    <div class="stat-card"><div class="stat-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--brand-secondary)" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg></div><div class="stat-value" id="statProgress">—</div><div class="stat-label">Progress</div></div>
+    <div class="stat-card"><div class="stat-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--brand-warning)" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div><div class="stat-value" id="statPoints">—</div><div class="stat-label">Points</div></div>
+  </div>
+
+  <div class="grid-2 mt-6">
+    <!-- PROGRESS -->
+    <div class="card">
+      <div class="flex-between mb-4">
+        <h3 style="font-size:0.9rem;font-weight:700;">Track Progress</h3>
+        <span id="progressLabel" style="font-size:0.82rem;font-weight:700;color:var(--brand-primary);">0%</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="progressBar" style="width:0%"></div></div>
+      <div id="recentLessons" style="margin-top:16px;"></div>
+      <!-- Cert request banner -->
+      <div class="cert-cta" id="certCta">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--brand-accent)" stroke-width="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>
+        <div style="flex:1;">
+          <div style="font-weight:700;font-size:0.9rem;color:var(--brand-accent);">Track Complete!</div>
+          <div style="font-size:0.76rem;color:var(--muted);margin-top:2px;">You are eligible for your certificate.</div>
+        </div>
+        <button class="btn btn-success" id="certBtn" onclick="requestCertificate()">Request Certificate</button>
+      </div>
+    </div>
+
+    <!-- NOTIFICATIONS -->
+    <div class="card">
+      <div class="flex-between mb-4">
+        <h3 style="font-size:0.9rem;font-weight:700;">Notifications</h3>
+        <span id="unreadLabel" style="font-size:0.72rem;color:var(--muted);"></span>
+      </div>
+      <div id="notifList"><div class="flex-center" style="padding:20px;"><span class="loader"></span></div></div>
+    </div>
+  </div>
+
+  <div class="grid-2 mt-6">
+    <!-- LATEST FEEDBACK -->
+    <div class="card" id="feedbackCard" style="display:none;">
+      <h3 style="font-size:0.9rem;font-weight:700;margin-bottom:12px;">Latest Feedback</h3>
+      <div id="feedbackBody"></div>
+    </div>
+
+    <!-- YOUR MENTOR -->
+    <div class="card" id="mentorCard" style="display:none;">
+      <h3 style="font-size:0.9rem;font-weight:700;margin-bottom:12px;">Your Mentor</h3>
+      <div style="display:flex;align-items:center;gap:14px;">
+        <div class="avatar avatar-lg" id="mentorAvatar">?</div>
+        <div style="flex:1;">
+          <div style="font-weight:700;font-size:0.92rem;" id="mentorName">—</div>
+          <div style="font-size:0.76rem;color:var(--muted);margin-top:2px;" id="mentorBio"></div>
+        </div>
+      </div>
+      <a href="/dashboard/messages?to=mentor" class="btn btn-primary btn-sm w-full" style="margin-top:14px;">Message Your Mentor</a>
+    </div>
+
+    <!-- ANNOUNCEMENTS -->
+    <div class="card">
+      <h3 style="font-size:0.9rem;font-weight:700;margin-bottom:8px;">Announcements</h3>
+      <div id="annList"><p style="font-size:0.8rem;color:var(--muted);">Loading…</p></div>
+    </div>
+  </div>
+</main>
+</div>
+
+<!-- CHECK-IN MODAL -->
+<div class="modal-overlay" id="checkinModal">
+  <div class="modal" style="max-width:440px;">
+    <div class="modal-header"><div class="modal-title">Weekly Check-In</div><button class="modal-close" onclick="closeModal('checkinModal')">✕</button></div>
+    <div class="form-group">
+      <label class="form-label">How confident are you feeling this week?</label>
+      <div style="display:flex;gap:8px;" id="confidenceRow">
+        <button type="button" class="btn btn-outline btn-sm conf-btn" data-v="1" onclick="pickConfidence(1)">1</button>
+        <button type="button" class="btn btn-outline btn-sm conf-btn" data-v="2" onclick="pickConfidence(2)">2</button>
+        <button type="button" class="btn btn-outline btn-sm conf-btn" data-v="3" onclick="pickConfidence(3)">3</button>
+        <button type="button" class="btn btn-outline btn-sm conf-btn" data-v="4" onclick="pickConfidence(4)">4</button>
+        <button type="button" class="btn btn-outline btn-sm conf-btn" data-v="5" onclick="pickConfidence(5)">5</button>
+      </div>
+      <div style="font-size:0.7rem;color:var(--muted);margin-top:6px;">1 = struggling · 5 = very confident</div>
+    </div>
+    <div class="form-group"><label class="form-label">Hours studied this week</label><input type="number" class="form-control" id="hoursStudied" min="0" max="168" step="0.5" placeholder="e.g. 10"/></div>
+    <div class="form-group">
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:0.86rem;font-weight:600;">
+        <input type="checkbox" id="needsHelp" style="accent-color:var(--brand-danger);width:16px;height:16px;"/>
+        🚩 I need help this week
+      </label>
+    </div>
+    <div class="form-group"><label class="form-label">Anything you want us to know? (optional)</label><textarea class="form-control" id="checkinNote" rows="2"></textarea></div>
+    <button class="btn btn-primary w-full" onclick="submitCheckin()" id="checkinSubmitBtn">Submit Check-In</button>
+  </div>
+</div>
+
+<script src="/js/app.js"></script>
+<script src="/js/mobile.js"></script>
+<script>
+if (!auth.getToken()) window.location.href = '/login';
+
+function esc(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function renderNextAction(next) {
+  const card = document.getElementById('nextCard');
+  if (!next) { card.style.display = 'none'; return; }
+  card.style.display = 'flex';
+  const icons = {
+    assignment: '<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>',
+    lesson: '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>',
+    resubmit: '<polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>',
+    exam: '<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>',
+    certificate: '<circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/>',
+    caught_up: '<polyline points="20 6 9 17 4 12"/>',
+  };
+  card.className = 'next-card' + (next.type === 'caught_up' ? ' caught-up' : '');
+  let deadlineHtml = '';
+  if (next.deadline) {
+    const overdue = new Date(next.deadline) < new Date();
+    deadlineHtml = `<div class="nc-deadline ${overdue ? 'overdue' : ''}">${overdue ? 'Overdue — was due' : 'Due'} ${formatDate(next.deadline)}</div>`;
+  } else if (next.type === 'caught_up' && next.next_unlock_at) {
+    deadlineHtml = `<div class="nc-deadline">Next module unlocks ${formatDate(next.next_unlock_at)}</div>`;
+  }
+  card.innerHTML = `
+    <div class="nc-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${icons[next.type] || icons.lesson}</svg></div>
+    <div style="flex:1;">
+      <div class="nc-label">${next.type === 'caught_up' ? "You're all caught up" : 'Do this next'}</div>
+      <div class="nc-title">${esc(next.title)}</div>
+      ${next.subtitle ? `<div class="nc-sub">${esc(next.subtitle)}</div>` : ''}
+      ${deadlineHtml}
+    </div>
+    ${next.action_url ? `<a href="${esc(next.action_url)}" class="btn btn-primary btn-sm">${esc(next.action_label || 'Go')}</a>` : ''}
+  `;
+}
+
+async function loadDashboard() {
+  const [data, summary, next, ann] = await Promise.all([
+    api.get('/api/fellows/me'),
+    api.get('/api/fellows/dashboard-summary'),
+    api.get('/api/fellows/next-action'),
+    api.get('/api/announcements/my'),
+  ]);
+  if (!data) return;
+  const { fellow, notifications } = data;
+
+  // Avatar
+  const av = document.getElementById('avatarEl');
+  av.innerHTML = fellow.profile_photo
+    ? `<img src="${fellow.profile_photo}" alt=""/>`
+    : fellow.full_name?.charAt(0) || '?';
+
+  document.getElementById('fellowName').textContent = fellow.full_name;
+  document.getElementById('fellowIdEl').textContent = fellow.fellow_id || 'Pending ID';
+  document.getElementById('trackBadge').textContent = `${fellow.tracks?.name || '—'} · ${fellow.cohorts?.name || 'Cohort'}`;
+  document.getElementById('pointsEl').textContent = (fellow.points || 0).toLocaleString();
+  document.getElementById('statPoints').textContent = (fellow.points || 0).toLocaleString();
+
+  // Your Mentor
+  if (fellow.mentors) {
+    const mc = document.getElementById('mentorCard');
+    mc.style.display = '';
+    document.getElementById('mentorAvatar').innerHTML = fellow.mentors.profile_photo ? `<img src="${fellow.mentors.profile_photo}"/>` : esc(fellow.mentors.full_name?.charAt(0) || '?');
+    document.getElementById('mentorName').textContent = fellow.mentors.full_name;
+    document.getElementById('mentorBio').textContent = fellow.mentors.bio || 'Here to help you through the program.';
+  }
+
+  // Progress (real lesson completion from modules/lessons)
+  const p = summary?.progress;
+  if (p && p.total > 0) {
+    document.getElementById('statTotal').textContent = p.total;
+    document.getElementById('statDone').textContent = p.done;
+    document.getElementById('statProgress').textContent = p.percent + '%';
+    document.getElementById('progressBar').style.width = p.percent + '%';
+    document.getElementById('progressLabel').textContent = p.percent + '%';
+
+    document.getElementById('recentLessons').innerHTML = (p.recent || []).map(l => `
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);">
+        <span class="icon-sm" style="color:${l.done?'var(--brand-accent)':'var(--muted)'}">
+          ${l.done
+            ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>'
+            : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>'}
+        </span>
+        <div style="flex:1;font-size:0.82rem;font-weight:500;">${esc(l.title)}</div>
+        <span style="font-size:0.7rem;color:var(--muted);">${esc(l.module)}</span>
+      </div>`).join('') || '<p style="font-size:0.8rem;color:var(--muted);margin-top:8px;">No lessons in your open modules yet.</p>';
+  } else {
+    document.getElementById('statTotal').textContent = '0';
+    document.getElementById('statDone').textContent = '0';
+    document.getElementById('statProgress').textContent = '0%';
+    document.getElementById('recentLessons').innerHTML = '<p style="font-size:0.8rem;color:var(--muted);margin-top:8px;">No lessons available yet</p>';
+  }
+
+  // Certificate CTA — driven by real eligibility (lessons + exam), not just 100% of a legacy list
+  const el = summary?.eligibility;
+  if (el) {
+    const cta = document.getElementById('certCta');
+    if (el.has_certificate) {
+      cta.classList.add('show');
+      cta.querySelector('.nc-title, div div').textContent = 'Your certificate has been issued!';
+      document.getElementById('certBtn').textContent = 'View Certificate';
+      document.getElementById('certBtn').onclick = () => window.location.href='/dashboard/certificates';
+    } else if (el.has_pending_request) {
+      cta.classList.add('show');
+      document.getElementById('certBtn').textContent = 'Pending Review';
+      document.getElementById('certBtn').disabled = true;
+    } else if (el.eligible) {
+      cta.classList.add('show');
+    }
+  }
+
+  // Do This Next
+  renderNextAction(next);
+
+  // Latest Feedback
+  const fb = summary?.latest_feedback;
+  if (fb) {
+    document.getElementById('feedbackCard').style.display = '';
+    const pct = fb.max_score ? Math.round((fb.grade / fb.max_score) * 100) : null;
+    const band = pct == null ? 'mid' : pct >= 80 ? 'good' : pct >= 60 ? 'mid' : 'low';
+    document.getElementById('feedbackBody').innerHTML = `
+      <div style="font-weight:700;font-size:0.88rem;">${esc(fb.assignment_title)}</div>
+      <div style="margin:8px 0;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        ${fb.grade != null ? `<span class="fb-band ${band}">${fb.grade}/${fb.max_score}</span>` : ''}
+        <span class="badge ${fb.approved ? 'badge-approved' : 'badge-pending'}">${fb.approved ? 'Approved' : 'Needs revision'}</span>
+      </div>
+      <div style="font-size:0.8rem;color:var(--muted);line-height:1.55;">${fb.feedback ? esc(fb.feedback) : 'No written feedback was added.'}</div>
+      <a href="${esc(fb.action_url)}" class="btn btn-outline btn-sm" style="margin-top:12px;">Open assignment</a>`;
+  }
+
+  // Announcements
+  const list = document.getElementById('annList');
+  list.innerHTML = (ann && ann.length)
+    ? ann.map(a => `
+      <details class="ann-item">
+        <summary><span>📢 ${esc(a.title)}</span><span class="ann-date">${formatDate(a.created_at)}</span></summary>
+        <div class="ann-body">${esc(a.content || '')}</div>
+      </details>`).join('')
+    : '<p style="font-size:0.8rem;color:var(--muted);">No announcements yet.</p>';
+
+  // Notifications
+  const unread = (notifications || []).filter(n => !n.is_read).length;
+  document.getElementById('unreadLabel').textContent = unread > 0 ? `${unread} unread` : 'All read';
+  document.getElementById('notifList').innerHTML = notifications?.length
+    ? notifications.slice(0,5).map(n => `
+        <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);">
+          <div class="notif-dot ${n.is_read?'read':''}"></div>
+          <div>
+            <div style="font-weight:600;font-size:0.82rem;">${n.title}</div>
+            <div style="font-size:0.76rem;color:var(--muted);margin-top:2px;">${n.message}</div>
+            <div style="font-size:0.68rem;color:var(--muted2);margin-top:3px;">${formatDate(n.created_at)}</div>
+          </div>
+        </div>`).join('')
+    : '<p style="font-size:0.82rem;color:var(--muted);">No notifications yet</p>';
+}
+
+async function checkCertStatus() {
+  const data = await api.get('/api/certificates/my');
+  const btn = document.getElementById('certBtn');
+  const cta = document.getElementById('certCta');
+  if (data?.certificates?.length > 0) {
+    btn.textContent = 'View Certificate'; btn.onclick = () => window.location.href='/dashboard/certificates';
+    cta.querySelector('div div').textContent = 'Your certificate has been issued!';
+  } else if (data?.requests?.some(r => r.status === 'pending')) {
+    btn.textContent = 'Pending Review'; btn.disabled = true;
+  }
+}
+
+async function requestCertificate() {
+  const btn = document.getElementById('certBtn');
+  btn.disabled = true; btn.innerHTML = '<span class="loader"></span>';
+  const r = await api.post('/api/certificates/request', {});
+  if (r?.success) {
+    showToast('Certificate request submitted!', 'success');
+    btn.textContent = 'Pending Review';
+  } else {
+    showToast(r?.error || 'Failed', 'error');
+    btn.disabled = false; btn.textContent = 'Request Certificate';
+  }
+}
+
+// ── Weekly check-in ──────────────────────────────────────────────────
+let pickedConfidence = null;
+function pickConfidence(v) {
+  pickedConfidence = v;
+  document.querySelectorAll('.conf-btn').forEach(b => {
+    const active = Number(b.dataset.v) === v;
+    b.classList.toggle('btn-primary', active);
+    b.classList.toggle('btn-outline', !active);
+  });
+}
+
+async function loadCheckinStatus() {
+  const r = await api.get('/api/fellows/checkin');
+  document.getElementById('checkinCard').style.display = (r && !r.checkin) ? 'flex' : 'none';
+}
+
+async function submitCheckin() {
+  if (!pickedConfidence) return showToast('Pick a confidence rating first', 'error');
+  const hours_studied = Number(document.getElementById('hoursStudied').value) || 0;
+  const needs_help = document.getElementById('needsHelp').checked;
+  const note = document.getElementById('checkinNote').value.trim();
+  const btn = document.getElementById('checkinSubmitBtn');
+  btn.disabled = true; btn.innerHTML = '<span class="loader"></span>';
+  const r = await api.post('/api/fellows/checkin', { confidence_rating: pickedConfidence, hours_studied, needs_help, note });
+  btn.disabled = false; btn.textContent = 'Submit Check-In';
+  if (r?.success) {
+    showToast('Thanks for checking in!', 'success');
+    closeModal('checkinModal');
+    document.getElementById('checkinCard').style.display = 'none';
+  } else {
+    showToast(r?.error || 'Failed to submit', 'error');
+  }
+}
+
+loadDashboard();
+loadCheckinStatus();
+</script>
+</body>
+</html>

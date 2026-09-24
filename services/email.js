@@ -10,7 +10,7 @@ const BREVO_URL = 'https://api.brevo.com/v3/smtp/email';
 const _fetch = globalThis.fetch || require('node-fetch');
 const DAILY_LIMIT = parseInt(process.env.BREVO_DAILY_LIMIT || '300', 10);
 
-const ACCOUNT_TYPES = new Set(['application_received', 'welcome', 'rejected', 'certificate_ready']);
+const ACCOUNT_TYPES = new Set(['application_received', 'welcome', 'rejected', 'certificate_ready', 'password_reset']);
 
 // ─── LOW LEVEL ───────────────────────────────────────────────────────
 async function logEmail(row) {
@@ -163,6 +163,16 @@ const templates = {
         + `<div style="background:#f4f5fb;border-left:3px solid #7C6EF7;padding:12px 14px;border-radius:6px;margin:10px 0;">${nl2br(d.reply)}</div>`,
       cta: { label: 'Open my inbox', url: dash('/dashboard/messages') },
       unsubUrl: d.unsubUrl,
+    }),
+  }),
+  password_reset: (f, d) => ({
+    subject: `Your password reset code: ${d.otp}`,
+    html: layout({
+      heading: 'Reset your password',
+      bodyHtml: p(`Hi ${esc(f.full_name || 'there')},`)
+        + p('Use this code to reset your password. It expires in 10 minutes and can only be used once.')
+        + `<div style="text-align:center;margin:20px 0;"><span style="display:inline-block;background:#f4f5fb;border:1px solid #e2e4f5;border-radius:8px;padding:14px 28px;font-size:28px;font-weight:800;letter-spacing:8px;color:#1A1A28;">${esc(d.otp)}</span></div>`
+        + p("If you didn't request this, you can safely ignore this email — your password will not be changed."),
     }),
   }),
 };

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Portfolio — Drix Tech Talent</title>
+<link rel="stylesheet" href="/css/style.css"/>
+<style>
+body{padding:40px 20px;}
+.wrap{max-width:720px;margin:0 auto;}
+.ph-header{display:flex;align-items:center;gap:18px;margin-bottom:28px;}
+.work-item{margin-bottom:14px;}
+.work-item .wi-title{font-weight:700;font-size:0.95rem;}
+.work-item .wi-meta{font-size:0.76rem;color:var(--muted);margin:2px 0 10px;}
+.work-item .wi-body{font-size:0.85rem;line-height:1.7;white-space:pre-wrap;background:var(--bg3);border-radius:10px;padding:14px 16px;}
+.brand-mini{display:flex;align-items:center;gap:8px;justify-content:center;margin-top:36px;opacity:0.6;font-size:0.76rem;}
+</style>
+</head>
+<body>
+<div class="wrap" id="content"><div class="flex-center" style="padding:80px;"><span class="loader"></span></div></div>
+
+<script src="/js/app.js"></script>
+<script>
+function esc(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+async function load() {
+  const params = new URLSearchParams(window.location.search);
+  const slug = params.get('slug') || window.location.pathname.split('/').filter(Boolean).pop();
+  const el = document.getElementById('content');
+  const p = await api.get(`/api/portfolio/${encodeURIComponent(slug)}`);
+
+  if (!p || p.error) {
+    el.innerHTML = `<div class="empty-state" style="padding:80px 20px;"><h3>Portfolio not found</h3><p>This link may be private or no longer active.</p></div>`;
+    return;
+  }
+
+  el.innerHTML = `
+    <div class="ph-header">
+      <div class="avatar avatar-lg">${p.profile_photo ? `<img src="${p.profile_photo}"/>` : esc(p.full_name?.charAt(0)||'?')}</div>
+      <div>
+        <h1 style="font-size:1.4rem;font-weight:800;letter-spacing:-0.02em;">${esc(p.full_name)}</h1>
+        <div style="font-size:0.84rem;color:var(--muted);margin-top:2px;">${esc(p.track || 'Drix Tech Talent Fellow')} · ${p.points.toLocaleString()} points</div>
+      </div>
+    </div>
+    ${!p.submissions.length
+      ? `<div class="card"><p style="font-size:0.85rem;color:var(--muted);">No public work has been added yet.</p></div>`
+      : p.submissions.map(s => `
+        <div class="card work-item">
+          <div class="wi-title">${esc(s.assignments?.title || 'Assignment')}</div>
+          <div class="wi-meta">Approved · ${s.grade}/${s.assignments?.max_score || 100}</div>
+          ${s.content ? `<div class="wi-body">${esc(s.content)}</div>` : ''}
+          ${s.file_url ? `<a href="${esc(s.file_url)}" target="_blank" style="display:inline-block;margin-top:10px;font-size:0.82rem;color:var(--brand-accent);">🔗 View linked work</a>` : ''}
+        </div>`).join('')}
+    <div class="brand-mini">Built during the Drix Tech Talent Programme</div>`;
+}
+load();
+</script>
+</body>
+</html>

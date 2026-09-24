@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Messages — Drix Admin</title>
+<link rel="stylesheet" href="/css/style.css"/>
+<style>
+.msg-list { display:flex; flex-direction:column; gap:0; }
+.msg-item { display:flex; align-items:flex-start; gap:14px; padding:16px 20px; cursor:pointer; transition:var(--trans); border-bottom:1px solid var(--border); }
+.msg-item:hover { background:var(--surface2); }
+.msg-item.unread { border-left:3px solid var(--brand-primary); }
+.msg-item.selected { background:rgba(124,110,247,0.06); }
+.msg-subject { font-weight:700; font-size:0.86rem; margin-bottom:3px; }
+.msg-preview { font-size:0.76rem; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:300px; }
+.thread-view { flex:1; display:flex; flex-direction:column; }
+.reply-bubble { background:var(--bg3); border:1px solid var(--border2); border-radius:12px 12px 12px 2px; padding:14px 16px; font-size:0.83rem; line-height:1.6; margin-bottom:12px; }
+.reply-bubble.admin { background:rgba(124,110,247,0.08); border-color:rgba(124,110,247,0.15); border-radius:12px 12px 2px 12px; }
+</style>
+</head>
+<body>
+<div class="layout">
+<aside class="sidebar">
+  <div class="sidebar-logo">DRIX Admin<span>Management Portal</span></div>
+  <nav class="sidebar-nav">
+    <div class="sidebar-section-label">Overview</div>
+    <a href="/admin/dashboard" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>Dashboard</a>
+    <a href="/admin/fellows" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></span>Fellows</a>
+    <a href="/admin/mentors" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>Mentors</a>
+    <a href="/admin/checkins" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>Check-ins</a>
+    <div class="sidebar-section-label">Content</div>
+    <a href="/admin/courses" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span>Tracks & Modules</a>
+    <a href="/admin/cohorts" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>Cohorts</a>
+    <a href="/admin/announcements" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg></span>Announcements</a>
+    <a href="/admin/submissions" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>Submissions</a>
+    <a href="/admin/blog" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span>Blog</a>
+    <a href="/admin/certificates" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg></span>Certificates</a>
+    <a href="/admin/messages" class="sidebar-link active"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></span>Messages</a>
+    <div class="sidebar-section-label">System</div>
+    <a href="/admin/settings" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M19.07 19.07l-1.41-1.41M4.93 19.07l1.41-1.41M12 2v2M12 20v2M2 12h2M20 12h2"/></svg></span>Settings</a>
+  </nav>
+  <div class="sidebar-bottom"><button onclick="adminLogout()" class="btn btn-outline w-full btn-sm">Sign Out</button></div>
+</aside>
+
+<main class="main-content">
+  <div class="flex-between mb-6">
+    <div><h1 style="font-size:1.5rem;font-weight:800;letter-spacing:-0.03em;">Messages</h1><p style="color:var(--muted);font-size:0.82rem;margin-top:3px;">Fellow enquiries and support messages</p></div>
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="loadMessages('unread',this)">Unread</button>
+      <button class="tab-btn" onclick="loadMessages('read',this)">Read</button>
+      <button class="tab-btn" onclick="loadMessages('replied',this)">Replied</button>
+      <button class="tab-btn" onclick="loadMessages('',this)">All</button>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:360px 1fr;gap:20px;height:calc(100vh - 160px);">
+    <!-- MESSAGE LIST -->
+    <div class="card" style="padding:0;overflow-y:auto;">
+      <div id="messageList"><div class="flex-center" style="padding:40px;"><span class="loader"></span></div></div>
+    </div>
+
+    <!-- THREAD VIEW -->
+    <div class="card" id="threadView" style="display:flex;flex-direction:column;">
+      <div class="flex-center" style="flex:1;flex-direction:column;gap:12px;color:var(--muted);">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        <p style="font-size:0.85rem;">Select a message to view thread</p>
+      </div>
+    </div>
+  </div>
+</main>
+</div>
+
+<script src="/js/app.js"></script>
+<script src="/js/mobile.js"></script>
+<script>
+if (!auth.getAdminToken()) window.location.href = '/admin/login';
+
+let allMessages = [];
+let selectedMsgId = null;
+
+async function loadMessages(status = '', btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+
+  document.getElementById('messageList').innerHTML = '<div class="flex-center" style="padding:40px;"><span class="loader"></span></div>';
+  const url = '/api/messages/admin/all' + (status ? `?status=${status}` : '');
+  allMessages = await api.get(url, true) || [];
+
+  if (!allMessages.length) {
+    document.getElementById('messageList').innerHTML = '<div class="empty-state"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/></svg><p>No messages</p></div>';
+    return;
+  }
+
+  document.getElementById('messageList').innerHTML = allMessages.map(m => `
+    <div class="msg-item ${m.status==='unread'?'unread':''}" id="msgItem-${m.id}" onclick="openThread('${m.id}')">
+      <div class="avatar">${m.fellows?.profile_photo ? `<img src="${m.fellows.profile_photo}"/>` : (m.fellows?.full_name?.charAt(0)||'?')}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px;">
+          <span class="msg-subject">${m.fellows?.full_name || 'Unknown'}</span>
+          ${m.status==='unread' ? '<span style="width:7px;height:7px;border-radius:50%;background:var(--brand-primary);flex-shrink:0;"></span>' : ''}
+        </div>
+        <div class="msg-preview">${m.subject}</div>
+        <div style="font-size:0.68rem;color:var(--muted2);margin-top:2px;">${formatDate(m.sent_at)}</div>
+      </div>
+    </div>`).join('');
+}
+
+function openThread(msgId) {
+  selectedMsgId = msgId;
+  document.querySelectorAll('.msg-item').forEach(el => el.classList.remove('selected'));
+  document.getElementById(`msgItem-${msgId}`)?.classList.add('selected');
+
+  const msg = allMessages.find(m => m.id === msgId);
+  if (!msg) return;
+
+  // Mark as read
+  if (msg.status === 'unread') {
+    api.patch(`/api/messages/admin/${msgId}/read`, {}, true);
+    msg.status = 'read';
+    document.getElementById(`msgItem-${msgId}`)?.classList.remove('unread');
+  }
+
+  const replies = msg.message_replies || [];
+  document.getElementById('threadView').innerHTML = `
+    <div style="padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px;">
+      <div class="avatar avatar-lg">${msg.fellows?.profile_photo ? `<img src="${msg.fellows.profile_photo}"/>` : (msg.fellows?.full_name?.charAt(0)||'?')}</div>
+      <div>
+        <div style="font-weight:700;font-size:0.95rem;">${msg.fellows?.full_name || 'Unknown'}</div>
+        <div style="font-size:0.74rem;color:var(--muted);">${msg.fellows?.email || ''} · ${msg.fellows?.fellow_id || ''}</div>
+      </div>
+      <span class="badge badge-${msg.status}" style="margin-left:auto;">${msg.status}</span>
+    </div>
+
+    <div style="flex:1;overflow-y:auto;padding:20px 24px;">
+      <div style="font-size:0.74rem;color:var(--muted2);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.06em;font-weight:600;">Subject: ${msg.subject}</div>
+      <div class="reply-bubble">${msg.message}</div>
+      <div style="font-size:0.7rem;color:var(--muted2);margin-bottom:20px;">${formatDate(msg.sent_at)}</div>
+
+      ${replies.map(r => `
+        <div style="font-size:0.7rem;color:var(--muted2);text-align:right;margin-bottom:4px;">Admin · ${formatDate(r.replied_at)}</div>
+        <div class="reply-bubble admin">${r.reply}</div>
+      `).join('')}
+    </div>
+
+    <div style="padding:16px 24px;border-top:1px solid var(--border);">
+      <div style="font-size:0.72rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">Reply to ${msg.fellows?.full_name}</div>
+      <textarea class="form-control" id="replyText" rows="3" placeholder="Type your reply..."></textarea>
+      <div style="display:flex;justify-content:flex-end;margin-top:10px;">
+        <button class="btn btn-primary" onclick="sendReply('${msgId}')">
+          <span class="icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></span>
+          Send Reply
+        </button>
+      </div>
+    </div>`;
+}
+
+async function sendReply(msgId) {
+  const reply = document.getElementById('replyText').value.trim();
+  if (!reply) return showToast('Please type a reply', 'error');
+  const r = await api.post(`/api/messages/admin/${msgId}/reply`, { reply }, true);
+  if (r?.success) { showToast('Reply sent!', 'success'); loadMessages('', null); }
+  else showToast(r?.error || 'Failed', 'error');
+}
+
+loadMessages('unread', document.querySelector('.tab-btn'));
+</script>
+</body>
+</html>

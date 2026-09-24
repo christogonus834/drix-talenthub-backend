@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Community — Drix Tech Talent</title>
+<link rel="stylesheet" href="/css/style.css"/>
+<style>
+.post-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:22px;margin-bottom:14px;transition:var(--trans);}
+.post-card:hover{border-color:var(--border2);}
+.post-card.pinned{border-color:rgba(124,110,247,0.35);background:rgba(124,110,247,0.03);}
+.post-av{width:40px;height:40px;border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.9rem;flex-shrink:0;overflow:hidden;}
+.post-av img{width:100%;height:100%;object-fit:cover;}
+.cat-tag{padding:3px 10px;border-radius:50px;font-size:0.68rem;font-weight:600;background:rgba(124,110,247,0.1);color:var(--accent2);border:1px solid rgba(124,110,247,0.2);}
+</style>
+</head>
+<body>
+<aside class="sidebar">
+  <div class="sidebar-logo">DRIX Tech Talent<span>Fellow Portal</span></div>
+  <nav class="sidebar-nav">
+    <div class="sidebar-section-label">Main</div>
+    <a href="/dashboard" class="sidebar-link"><span class="icon">🏠</span> Dashboard</a>
+    <a href="/dashboard/courses" class="sidebar-link"><span class="icon">📚</span> My Courses</a>
+    <a href="/dashboard/community" class="sidebar-link active"><span class="icon">👥</span> Community</a>
+    <a href="/dashboard/leaderboard" class="sidebar-link"><span class="icon">🏆</span> Leaderboard</a>
+    <a href="/dashboard/profile" class="sidebar-link"><span class="icon">👤</span> My Profile</a>
+  </nav>
+  <div class="sidebar-bottom"><button onclick="logout()" class="btn btn-outline w-full btn-sm">← Sign Out</button></div>
+</aside>
+<main class="main-content">
+  <div class="flex-between mb-6"><div><h1 style="font-size:1.5rem;letter-spacing:-0.02em;">Community</h1><p style="color:var(--muted);font-size:0.82rem;">Connect, share, and learn with fellow techies</p></div></div>
+
+  <div class="card mb-6">
+    <h3 style="font-size:0.95rem;margin-bottom:16px;">✍️ Share something</h3>
+    <div class="form-group"><input type="text" class="form-control" id="postTitle" placeholder="Post title..."/></div>
+    <div class="form-group"><textarea class="form-control" id="postContent" rows="3" placeholder="Share a win, ask a question, drop a resource..."></textarea></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+      <select class="form-control" id="postCat" style="width:auto;">
+        <option value="general">💬 General</option><option value="question">❓ Question</option>
+        <option value="resource">📎 Resource</option><option value="win">🏆 Win</option><option value="project">🛠️ Project</option>
+      </select>
+      <button class="btn btn-primary btn-sm" onclick="createPost()">Post (+5 pts)</button>
+    </div>
+  </div>
+
+  <div id="postsList"><div style="text-align:center;padding:40px;"><span class="loader"></span></div></div>
+</main>
+<script src="/js/app.js"></script>
+<script>
+// ── FELLOW TOKEN GUARD ────────────────────────────────────────────
+if (!localStorage.getItem('drix_token')) {
+  window.location.href = '/login';
+}
+
+</script>
+<script>
+async function loadPosts(){
+  const posts=await api.get('/api/fellows/community');
+  const c=document.getElementById('postsList');
+  if(!posts?.length){c.innerHTML='<div class="empty-state"><div class="icon">💬</div><p>No posts yet. Be the first!</p></div>';return;}
+  c.innerHTML=posts.map(p=>`
+    <div class="post-card ${p.is_pinned?'pinned':''}">
+      ${p.is_pinned?'<div style="font-size:0.7rem;color:var(--accent2);font-weight:600;margin-bottom:9px;">📌 PINNED</div>':''}
+      <div style="display:flex;align-items:center;gap:11px;margin-bottom:13px;">
+        <div class="post-av">${p.fellows?.profile_photo?`<img src="${p.fellows.profile_photo}"/>`:(p.fellows?.full_name?.charAt(0)||'?')}</div>
+        <div><div style="font-weight:600;font-size:0.86rem;">${p.fellows?.full_name||'Fellow'}</div><div style="font-size:0.74rem;color:var(--muted);">${p.fellows?.fellow_id||''} · ${p.fellows?.tracks?.name||''} · ${formatDate(p.created_at)}</div></div>
+        <span class="cat-tag" style="margin-left:auto;">${p.category}</span>
+      </div>
+      <div style="font-weight:700;font-size:0.96rem;margin-bottom:7px;">${p.title}</div>
+      <div style="font-size:0.84rem;color:var(--muted);line-height:1.7;">${p.content}</div>
+      <div style="display:flex;gap:14px;margin-top:14px;padding-top:14px;border-top:1px solid var(--border);"><span style="font-size:0.78rem;color:var(--muted);">❤️ ${p.likes} likes</span></div>
+    </div>`).join('');
+}
+async function createPost(){
+  const title=document.getElementById('postTitle').value.trim();
+  const content=document.getElementById('postContent').value.trim();
+  const category=document.getElementById('postCat').value;
+  if(!title||!content){showToast('Fill in title and content.','error');return;}
+  const r=await api.post('/api/fellows/community',{title,content,category});
+  if(r?.id){showToast('Posted! +5 points 🎉','success');document.getElementById('postTitle').value='';document.getElementById('postContent').value='';loadPosts();}
+  else showToast('Failed to post.','error');
+}
+loadPosts();
+</script>
+</body>
+</html>

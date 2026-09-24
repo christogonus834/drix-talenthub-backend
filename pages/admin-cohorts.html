@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Cohorts — Drix Admin</title>
+<link rel="stylesheet" href="/css/style.css"/>
+</head>
+<body>
+<aside class="sidebar">
+  <div class="sidebar-logo">DRIX Admin<span>Management Portal</span></div>
+  <nav class="sidebar-nav">
+    <div class="sidebar-section-label">Overview</div>
+    <a href="/admin/dashboard" class="sidebar-link"><span class="icon">📊</span> Dashboard</a>
+    <a href="/admin/fellows" class="sidebar-link"><span class="icon">👥</span> Fellows</a>
+    <a href="/admin/mentors" class="sidebar-link"><span class="icon">🎓</span> Mentors</a>
+    <a href="/admin/checkins" class="sidebar-link"><span class="icon">✅</span> Check-ins</a>
+    <div class="sidebar-section-label">Content</div>
+    <a href="/admin/courses" class="sidebar-link"><span class="icon">📚</span> Courses</a>
+    <a href="/admin/cohorts" class="sidebar-link active"><span class="icon">🎓</span> Cohorts</a>
+    <a href="/admin/announcements" class="sidebar-link"><span class="icon">📣</span> Announcements</a>
+    <a href="/admin/submissions" class="sidebar-link"><span class="icon">✅</span> Submissions</a>
+    <div class="sidebar-section-label">System</div>
+    <a href="/admin/settings" class="sidebar-link"><span class="icon">⚙️</span> Settings</a>
+  </nav>
+  <div class="sidebar-bottom"><button onclick="adminLogout()" class="btn btn-outline w-full btn-sm">← Sign Out</button></div>
+</aside>
+
+<main class="main-content">
+  <div class="flex-between mb-6">
+    <div><h1 style="font-size:1.5rem;letter-spacing:-0.02em;">Cohorts</h1><p style="color:var(--muted);font-size:0.82rem;">Manage programme cohorts</p></div>
+    <button class="btn btn-primary" onclick="openModal('cohortModal')">+ New Cohort</button>
+  </div>
+  <div id="cohortsGrid" class="grid-2"><div style="text-align:center;padding:60px;grid-column:span 2;"><span class="loader"></span></div></div>
+</main>
+
+<!-- COHORT MODAL -->
+<div class="modal-overlay" id="cohortModal">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title" id="cohortModalTitle">New Cohort</div><button class="modal-close" onclick="closeModal('cohortModal');resetCohort()">✕</button></div>
+    <input type="hidden" id="editCohortId"/>
+    <div class="form-group"><label class="form-label">Cohort Name *</label><input type="text" class="form-control" id="cohortName" placeholder="e.g. Cohort 2"/></div>
+    <div class="form-group"><label class="form-label">Description</label><textarea class="form-control" id="cohortDesc" rows="2" placeholder="Brief description..."></textarea></div>
+    <div class="grid-2">
+      <div class="form-group"><label class="form-label">Start Date</label><input type="date" class="form-control" id="cohortStart"/></div>
+      <div class="form-group"><label class="form-label">End Date</label><input type="date" class="form-control" id="cohortEnd"/></div>
+    </div>
+    <div class="form-group"><label class="form-label">Max Fellows</label><input type="number" class="form-control" id="cohortMax" placeholder="500"/></div>
+    <div class="form-group" style="display:flex;align-items:center;gap:14px;">
+      <span style="font-size:0.82rem;font-weight:500;">Active</span>
+      <label class="toggle"><input type="checkbox" id="cohortActive" checked/><span class="toggle-slider"></span></label>
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-primary" onclick="saveCohort()">Save Cohort</button>
+      <button class="btn btn-outline" onclick="closeModal('cohortModal');resetCohort()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/app.js"></script>
+<script src="/js/mobile.js"></script>
+<script>
+// ── ADMIN TOKEN GUARD ─────────────────────────────────────────────
+if (!localStorage.getItem('drix_admin_token')) {
+  window.location.href = '/admin/login';
+}
+
+</script>
+<script>
+async function loadCohorts() {
+  const cohorts = await api.get('/api/admin/cohorts', true);
+  const grid = document.getElementById('cohortsGrid');
+  if (!cohorts?.length) { grid.innerHTML = '<div class="empty-state" style="grid-column:span 2;"><div class="icon">🎓</div><p>No cohorts yet.</p></div>'; return; }
+  grid.innerHTML = cohorts.map(c => `
+    <div class="card">
+      <div class="flex-between mb-4">
+        <h3 style="font-size:1rem;">${c.name}</h3>
+        <span style="background:${c.is_active ? 'rgba(6,214,160,0.1)' : 'rgba(139,143,168,0.1)'};color:${c.is_active ? 'var(--success)' : 'var(--muted)'};padding:4px 12px;border-radius:50px;font-size:0.72rem;font-weight:600;">${c.is_active ? 'Active' : 'Inactive'}</span>
+      </div>
+      <p style="color:var(--muted);font-size:0.82rem;margin-bottom:16px;">${c.description || 'No description'}</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px;">
+        ${[['Start', c.start_date ? formatDate(c.start_date) : '—'], ['End', c.end_date ? formatDate(c.end_date) : '—'], ['Max Fellows', c.max_fellows], ['Created', formatDate(c.created_at)]].map(([l,v]) => `
+          <div style="background:var(--bg3);border-radius:var(--r);padding:10px 12px;">
+            <div style="font-size:0.66rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted2);margin-bottom:2px;">${l}</div>
+            <div style="font-size:0.84rem;font-weight:500;">${v}</div>
+          </div>`).join('')}
+      </div>
+      <div style="display:flex;gap:9px;">
+        <button class="btn btn-outline btn-sm" onclick='editCohort(${JSON.stringify(c).replace(/'/g,"&#39;")})'>Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="delCohort('${c.id}')">Delete</button>
+      </div>
+    </div>`).join('');
+}
+
+function editCohort(c) {
+  document.getElementById('cohortModalTitle').textContent = 'Edit Cohort';
+  document.getElementById('editCohortId').value = c.id;
+  document.getElementById('cohortName').value = c.name;
+  document.getElementById('cohortDesc').value = c.description || '';
+  document.getElementById('cohortStart').value = c.start_date || '';
+  document.getElementById('cohortEnd').value = c.end_date || '';
+  document.getElementById('cohortMax').value = c.max_fellows;
+  document.getElementById('cohortActive').checked = c.is_active;
+  openModal('cohortModal');
+}
+
+function resetCohort() {
+  document.getElementById('cohortModalTitle').textContent = 'New Cohort';
+  document.getElementById('editCohortId').value = '';
+  ['cohortName','cohortDesc','cohortStart','cohortEnd','cohortMax'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('cohortActive').checked = true;
+}
+
+async function saveCohort() {
+  const id = document.getElementById('editCohortId').value;
+  const payload = { name: document.getElementById('cohortName').value, description: document.getElementById('cohortDesc').value, start_date: document.getElementById('cohortStart').value || null, end_date: document.getElementById('cohortEnd').value || null, max_fellows: parseInt(document.getElementById('cohortMax').value) || 500, is_active: document.getElementById('cohortActive').checked };
+  if (!payload.name) { showToast('Cohort name is required.', 'error'); return; }
+  const r = id ? await api.put(`/api/admin/cohorts/${id}`, payload, true) : await api.post('/api/admin/cohorts', payload, true);
+  if (r.success) { showToast(`Cohort ${id ? 'updated' : 'created'}!`, 'success'); closeModal('cohortModal'); resetCohort(); loadCohorts(); }
+  else showToast(r.error || 'Failed.', 'error');
+}
+
+async function delCohort(id) {
+  confirmAction('Delete this cohort?', async () => {
+    const r = await api.delete(`/api/admin/cohorts/${id}`, true);
+    if (r.success) { showToast('Deleted.', 'success'); loadCohorts(); }
+    else showToast('Failed.', 'error');
+  });
+}
+loadCohorts();
+</script>
+</body>
+</html>

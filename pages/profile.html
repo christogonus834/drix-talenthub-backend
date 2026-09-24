@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>My Profile — Drix Tech Talent</title>
+<link rel="stylesheet" href="/css/style.css"/>
+<style>
+.profile-header{display:flex;align-items:center;gap:20px;margin-bottom:24px;}
+.profile-photo-wrap{position:relative;width:84px;height:84px;flex-shrink:0;}
+.profile-photo-wrap .avatar{width:84px;height:84px;font-size:1.8rem;}
+.photo-edit-btn{position:absolute;bottom:-2px;right:-2px;width:28px;height:28px;border-radius:50%;background:var(--brand-primary);display:flex;align-items:center;justify-content:center;cursor:pointer;border:2px solid var(--bg);}
+.info-row{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);font-size:0.84rem;}
+.info-row:last-child{border-bottom:none;}
+.info-row .lbl{color:var(--muted);}
+.info-row .val{font-weight:600;text-align:right;}
+.pref-row{display:flex;align-items:center;justify-content:space-between;padding:14px 0;}
+</style>
+</head>
+<body>
+<div class="layout">
+<aside class="sidebar">
+  <div class="sidebar-logo">DRIX Tech Talent<span>Fellow Portal</span></div>
+  <nav class="sidebar-nav">
+    <div class="sidebar-section-label">Main</div>
+    <a href="/dashboard" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>Dashboard</a>
+    <a href="/dashboard/courses" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span>My Courses</a>
+    <a href="/dashboard/community" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>Community</a>
+    <a href="/dashboard/leaderboard" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg></span>Leaderboard</a>
+    <div class="sidebar-section-label">Account</div>
+    <a href="/dashboard/certificates" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg></span>Certificates</a>
+    <a href="/dashboard/messages" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></span>Messages</a>
+    <a href="/dashboard/profile" class="sidebar-link active"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>My Profile</a>
+  </nav>
+  <div class="sidebar-bottom"><button onclick="logout()" class="btn btn-outline w-full btn-sm">Sign Out</button></div>
+</aside>
+
+<main class="main-content" style="max-width:620px;">
+  <h1 style="font-size:1.4rem;font-weight:800;letter-spacing:-0.02em;margin-bottom:20px;">My Profile</h1>
+
+  <div class="card" style="margin-bottom:20px;">
+    <div class="profile-header">
+      <div class="profile-photo-wrap">
+        <div class="avatar" id="avatarEl">?</div>
+        <div class="photo-edit-btn" onclick="document.getElementById('photoInput').click()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+        </div>
+        <input type="file" id="photoInput" accept="image/png,image/jpeg,image/webp,image/gif" style="display:none;" onchange="uploadPhoto(this)"/>
+      </div>
+      <div>
+        <div style="font-size:1.1rem;font-weight:700;" id="nameEl">Loading…</div>
+        <div style="font-size:0.8rem;color:var(--muted);margin-top:2px;" id="emailEl">—</div>
+        <div style="font-family:var(--mono);font-size:0.7rem;background:rgba(124,110,247,0.1);border:1px solid rgba(124,110,247,0.2);color:var(--brand-secondary);padding:3px 10px;border-radius:6px;display:inline-block;margin-top:6px;" id="idEl">—</div>
+      </div>
+    </div>
+    <div id="infoRows"></div>
+  </div>
+
+  <div class="card" style="margin-bottom:20px;">
+    <h3 style="font-size:0.9rem;font-weight:700;margin-bottom:12px;">Badges</h3>
+    <div id="badgeGrid" style="display:flex;gap:14px;flex-wrap:wrap;"></div>
+  </div>
+
+  <div class="card" style="margin-bottom:20px;">
+    <h3 style="font-size:0.9rem;font-weight:700;margin-bottom:4px;">Portfolio</h3>
+    <p style="font-size:0.78rem;color:var(--muted);margin-bottom:14px;">Share your approved work with employers via a public link. Nothing is shown until you turn this on.</p>
+    <div class="pref-row">
+      <span style="font-size:0.84rem;font-weight:600;">Public portfolio</span>
+      <label class="toggle"><input type="checkbox" id="portfolioToggle" onchange="savePortfolioPublic()"/><span class="toggle-slider"></span></label>
+    </div>
+    <div class="form-group" style="margin-top:8px;">
+      <label class="form-label">Your link</label>
+      <div style="display:flex;gap:8px;">
+        <input type="text" class="form-control" id="portfolioSlug" placeholder="e.g. jane-frontend"/>
+        <button class="btn btn-outline btn-sm" onclick="savePortfolioSlug()">Save</button>
+      </div>
+      <div id="portfolioLinkOut" style="font-size:0.76rem;color:var(--muted);margin-top:8px;"></div>
+    </div>
+    <div style="font-weight:700;font-size:0.85rem;margin:16px 0 10px;">Approved work</div>
+    <div id="portfolioSubs" style="font-size:0.82rem;color:var(--muted);">Loading…</div>
+  </div>
+
+  <div class="card">
+    <h3 style="font-size:0.9rem;font-weight:700;margin-bottom:4px;">Email Notifications</h3>
+    <p style="font-size:0.78rem;color:var(--muted);">Approval, rejection and certificate emails always send. This controls activity emails — new modules, announcements, grading and message replies.</p>
+    <div class="pref-row">
+      <span style="font-size:0.84rem;font-weight:600;">Activity emails</span>
+      <label class="toggle"><input type="checkbox" id="emailToggle" onchange="saveEmailPref()"/><span class="toggle-slider"></span></label>
+    </div>
+  </div>
+</main>
+</div>
+
+<script src="/js/app.js"></script>
+<script src="/js/mobile.js"></script>
+<script>
+if (!auth.getToken()) window.location.href = '/login';
+function esc(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+async function loadProfile() {
+  const [data, pref] = await Promise.all([
+    api.get('/api/fellows/me'),
+    api.get('/api/fellows/email-preferences'),
+  ]);
+  if (!data) return;
+  const f = data.fellow;
+
+  const av = document.getElementById('avatarEl');
+  av.innerHTML = f.profile_photo ? `<img src="${f.profile_photo}" alt=""/>` : esc(f.full_name?.charAt(0) || '?');
+  document.getElementById('nameEl').textContent = f.full_name;
+  document.getElementById('emailEl').textContent = f.email;
+  document.getElementById('idEl').textContent = f.fellow_id || 'Pending ID';
+
+  document.getElementById('infoRows').innerHTML = [
+    ['Track', f.tracks?.name || '—'],
+    ['Cohort', f.cohorts?.name || '—'],
+    ['Phone', f.phone || '—'],
+    ['State', f.state || '—'],
+    ['Points', (f.points || 0).toLocaleString()],
+    ['Status', f.status ? f.status.charAt(0).toUpperCase() + f.status.slice(1) : '—'],
+  ].map(([l,v]) => `<div class="info-row"><span class="lbl">${l}</span><span class="val">${esc(v)}</span></div>`).join('');
+
+  if (pref) document.getElementById('emailToggle').checked = pref.email_notifications !== false;
+
+  // Badges
+  if (data.badges) {
+    document.getElementById('badgeGrid').innerHTML = data.badges.map(b => `
+      <div style="text-align:center;width:80px;opacity:${b.earned ? '1' : '0.35'};" title="${esc(b.label)} — ${b.min_points}+ points">
+        <div style="font-size:1.8rem;">${b.icon}</div>
+        <div style="font-size:0.66rem;color:var(--muted);margin-top:4px;line-height:1.3;">${esc(b.label)}</div>
+      </div>`).join('');
+  }
+}
+
+async function loadPortfolio() {
+  const p = await api.get('/api/fellows/portfolio');
+  if (!p) return;
+  document.getElementById('portfolioToggle').checked = !!p.portfolio_public;
+  document.getElementById('portfolioSlug').value = p.portfolio_slug || '';
+  renderPortfolioLink(p.portfolio_slug, p.portfolio_public);
+
+  const el = document.getElementById('portfolioSubs');
+  if (!p.submissions?.length) {
+    el.innerHTML = 'No approved assignments yet — once one is graded and approved, it will show up here to add to your portfolio.';
+    return;
+  }
+  el.innerHTML = p.submissions.map(s => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);">
+      <div><div style="font-weight:600;color:var(--text);">${esc(s.assignments?.title || 'Assignment')}</div>
+      <div style="font-size:0.72rem;color:var(--muted2);">${s.grade}/${s.assignments?.max_score || 100}</div></div>
+      <label class="toggle"><input type="checkbox" ${s.is_public?'checked':''} onchange="toggleSubmissionPublic('${s.id}', this.checked)"/><span class="toggle-slider"></span></label>
+    </div>`).join('');
+}
+
+function renderPortfolioLink(slug, isPublic) {
+  const out = document.getElementById('portfolioLinkOut');
+  if (!slug) { out.textContent = 'Choose a link to enable sharing.'; return; }
+  const url = `${window.location.origin}/portfolio/${slug}`;
+  out.innerHTML = isPublic
+    ? `Live at <a href="${url}" target="_blank" style="color:var(--brand-accent);">${url}</a>`
+    : `Will be at <span style="color:var(--muted2);">${url}</span> once turned on.`;
+}
+
+async function savePortfolioPublic() {
+  const checked = document.getElementById('portfolioToggle').checked;
+  const r = await api.patch('/api/fellows/portfolio-settings', { portfolio_public: checked });
+  if (r?.success) { showToast(checked ? 'Portfolio is now public' : 'Portfolio hidden', 'success'); renderPortfolioLink(document.getElementById('portfolioSlug').value, checked); }
+  else { showToast(r?.error || 'Failed to save', 'error'); document.getElementById('portfolioToggle').checked = !checked; }
+}
+
+async function savePortfolioSlug() {
+  const slug = document.getElementById('portfolioSlug').value.trim();
+  if (!slug) return showToast('Enter a link first', 'error');
+  const r = await api.patch('/api/fellows/portfolio-settings', { slug });
+  if (r?.success) { showToast('Link saved!', 'success'); document.getElementById('portfolioSlug').value = r.portfolio_slug; renderPortfolioLink(r.portfolio_slug, r.portfolio_public); }
+  else showToast(r?.error || 'Failed to save', 'error');
+}
+
+async function toggleSubmissionPublic(id, isPublic) {
+  const r = await api.patch(`/api/fellows/submissions/${id}/portfolio`, { is_public: isPublic });
+  if (!r?.success) showToast(r?.error || 'Failed to update', 'error');
+}
+
+async function uploadPhoto(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 3 * 1024 * 1024) { showToast('Photo must be under 3MB', 'error'); input.value = ''; return; }
+  const reader = new FileReader();
+  reader.onload = async () => {
+    const r = await api.post('/api/fellows/upload-photo', { photo_base64: reader.result });
+    if (r?.success) {
+      document.getElementById('avatarEl').innerHTML = `<img src="${r.profile_photo}" alt=""/>`;
+      showToast('Photo updated!', 'success');
+    } else {
+      showToast(r?.error || 'Failed to upload photo', 'error');
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+async function saveEmailPref() {
+  const checked = document.getElementById('emailToggle').checked;
+  const r = await api.patch('/api/fellows/email-preferences', { email_notifications: checked });
+  if (r?.success) showToast(checked ? 'Activity emails turned on' : 'Activity emails turned off', 'success');
+  else { showToast(r?.error || 'Failed to save', 'error'); document.getElementById('emailToggle').checked = !checked; }
+}
+
+loadProfile();
+loadPortfolio();
+</script>
+</body>
+</html>

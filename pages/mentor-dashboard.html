@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Mentor Dashboard — Drix Tech Talent</title>
+<link rel="stylesheet" href="/css/style.css"/>
+<style>
+.sub-row{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:16px 20px;margin-bottom:10px;display:flex;align-items:center;gap:16px;cursor:pointer;transition:var(--trans);}
+.sub-row:hover{border-color:var(--border3);}
+.sr-meta{font-size:0.72rem;color:var(--muted);margin-top:2px;}
+.grade-band{border-radius:8px;padding:2px 9px;font-size:0.72rem;font-weight:700;}
+.grade-band.good{background:rgba(6,214,160,0.12);color:#06D6A0;}
+.grade-band.mid{background:rgba(124,110,247,0.12);color:var(--brand-secondary);}
+.grade-band.low{background:rgba(251,191,36,0.12);color:#FBBF24;}
+.mentee-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:16px 18px;display:flex;align-items:center;gap:14px;margin-bottom:10px;}
+.msg-item{display:flex;align-items:flex-start;gap:14px;padding:16px 20px;cursor:pointer;transition:var(--trans);border-bottom:1px solid var(--border);}
+.msg-item:hover{background:var(--surface2);}
+.msg-item.unread{border-left:3px solid var(--brand-primary);}
+.msg-item.selected{background:rgba(124,110,247,0.06);}
+.msg-subject{font-weight:700;font-size:0.86rem;margin-bottom:3px;}
+.msg-preview{font-size:0.76rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:300px;}
+.reply-bubble{background:var(--bg3);border:1px solid var(--border2);border-radius:12px 12px 12px 2px;padding:14px 16px;font-size:0.83rem;line-height:1.6;margin-bottom:12px;}
+.reply-bubble.mentor{background:rgba(6,214,160,0.08);border-color:rgba(6,214,160,0.15);border-radius:12px 12px 2px 12px;}
+.stat-mini{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:18px 20px;}
+.tab-bar{display:flex;gap:8px;margin-bottom:18px;}
+</style>
+</head>
+<body>
+<div class="layout">
+<aside class="sidebar">
+  <div class="sidebar-logo">DRIX Tech Talent<span>Mentor Portal</span></div>
+  <nav class="sidebar-nav">
+    <div class="sidebar-section-label">Main</div>
+    <a href="#" class="sidebar-link active" onclick="showTab('overview');return false;" id="navOverview"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>Overview</a>
+    <a href="#" class="sidebar-link" onclick="showTab('mentees');return false;" id="navMentees"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></span>My Mentees</a>
+    <a href="#" class="sidebar-link" onclick="showTab('submissions');return false;" id="navSubmissions"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>Submissions</a>
+    <a href="#" class="sidebar-link" onclick="showTab('messages');return false;" id="navMessages"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></span>Messages</a>
+  </nav>
+  <div class="sidebar-bottom"><button onclick="mentorLogout()" class="btn btn-outline w-full btn-sm">Sign Out</button></div>
+</aside>
+
+<main class="main-content">
+
+  <!-- OVERVIEW -->
+  <div id="tab-overview">
+    <div class="mb-6"><h1 style="font-size:1.5rem;font-weight:800;letter-spacing:-0.03em;" id="welcomeMsg">Welcome back</h1><p style="color:var(--muted);font-size:0.82rem;margin-top:3px;">Here's how your mentees are doing.</p></div>
+    <div class="grid-3 mb-6" id="statsRow">
+      <div class="stat-mini"><div style="font-size:0.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;font-weight:600;">Mentees</div><div style="font-size:1.7rem;font-weight:800;margin-top:6px;" id="statMentees">—</div></div>
+      <div class="stat-mini"><div style="font-size:0.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;font-weight:600;">Pending Reviews</div><div style="font-size:1.7rem;font-weight:800;margin-top:6px;color:var(--brand-warning);" id="statPending">—</div></div>
+      <div class="stat-mini"><div style="font-size:0.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;font-weight:600;">Avg. Points</div><div style="font-size:1.7rem;font-weight:800;margin-top:6px;" id="statAvg">—</div></div>
+    </div>
+    <div class="card">
+      <div style="font-weight:700;font-size:0.95rem;margin-bottom:14px;">Post an announcement to your mentees</div>
+      <div class="form-group"><input type="text" class="form-control" id="annTitle" placeholder="Announcement title"/></div>
+      <div class="form-group"><textarea class="form-control" id="annBody" rows="3" placeholder="What do you want your mentees to know?"></textarea></div>
+      <button class="btn btn-primary btn-sm" onclick="postAnnouncement()">Post to My Mentees</button>
+    </div>
+  </div>
+
+  <!-- MENTEES -->
+  <div id="tab-mentees" style="display:none;">
+    <div class="mb-6"><h1 style="font-size:1.5rem;font-weight:800;letter-spacing:-0.03em;">My Mentees</h1><p style="color:var(--muted);font-size:0.82rem;margin-top:3px;">Fellows assigned to you</p></div>
+    <div id="menteesList"><div class="flex-center" style="padding:40px;"><span class="loader"></span></div></div>
+  </div>
+
+  <!-- SUBMISSIONS -->
+  <div id="tab-submissions" style="display:none;">
+    <div class="flex-between mb-4" style="flex-wrap:wrap;gap:10px;">
+      <div><h1 style="font-size:1.4rem;font-weight:800;letter-spacing:-0.02em;">Submissions</h1><p style="color:var(--muted);font-size:0.8rem;margin-top:3px;">Grade your mentees' work</p></div>
+    </div>
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="loadSubs('submitted',this)">Ungraded</button>
+      <button class="tab-btn" onclick="loadSubs('graded',this)">Graded</button>
+      <button class="tab-btn" onclick="loadSubs('',this)">All</button>
+    </div>
+    <div id="subList"><div class="flex-center" style="padding:40px;"><span class="loader"></span></div></div>
+  </div>
+
+  <!-- MESSAGES -->
+  <div id="tab-messages" style="display:none;">
+    <div class="mb-6"><h1 style="font-size:1.5rem;font-weight:800;letter-spacing:-0.03em;">Messages</h1><p style="color:var(--muted);font-size:0.82rem;margin-top:3px;">Messages from your mentees</p></div>
+    <div style="display:grid;grid-template-columns:340px 1fr;gap:20px;height:calc(100vh - 200px);">
+      <div class="card" style="padding:0;overflow-y:auto;"><div id="messageList"><div class="flex-center" style="padding:40px;"><span class="loader"></span></div></div></div>
+      <div class="card" id="threadView" style="display:flex;flex-direction:column;">
+        <div class="flex-center" style="flex:1;flex-direction:column;gap:12px;color:var(--muted);">
+          <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/></svg>
+          <p style="font-size:0.85rem;">Select a message to view</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+</div>
+
+<!-- GRADE MODAL -->
+<div class="modal-overlay" id="gradeModal">
+  <div class="modal" style="max-width:560px;">
+    <div class="modal-header"><div class="modal-title">Review Submission</div><button class="modal-close" onclick="closeModal('gradeModal')">✕</button></div>
+    <input type="hidden" id="gradeSubId"/>
+    <div style="font-size:0.86rem;font-weight:700;margin-bottom:2px;" id="gradeAssignTitle"></div>
+    <div style="font-size:0.74rem;color:var(--muted);margin-bottom:14px;" id="gradeFellowLine"></div>
+    <div class="card" style="background:var(--bg2);margin-bottom:16px;max-height:180px;overflow-y:auto;">
+      <div style="font-size:0.82rem;white-space:pre-wrap;line-height:1.6;" id="gradeContent"></div>
+      <a href="#" target="_blank" id="gradeFileLink" style="display:none;font-size:0.8rem;margin-top:8px;">🔗 Open submitted file/link</a>
+    </div>
+    <div class="grid-2">
+      <div class="form-group"><label class="form-label">Points (out of <span id="gradeMax">100</span>)</label><input type="number" class="form-control" id="gradePoints" min="0"/></div>
+      <div class="form-group"><label class="form-label">Decision</label>
+        <select class="form-control" id="gradeDecision">
+          <option value="approved">Approve</option>
+          <option value="needs_revision">Needs revision</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group"><label class="form-label">Written feedback</label><textarea class="form-control" id="gradeFeedback" rows="4" placeholder="What did they do well? What should they improve?"></textarea></div>
+    <div class="alert alert-error" id="gradeAlert"></div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-primary" onclick="saveGrade()" id="saveGradeBtn">Save Review</button>
+      <button class="btn btn-outline" onclick="closeModal('gradeModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/app.js"></script>
+<script src="/js/mobile.js"></script>
+<script>
+if (!auth.getMentorToken()) window.location.href = '/mentor/login';
+function esc(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function showTab(name) {
+  ['overview','mentees','submissions','messages'].forEach(t => {
+    document.getElementById('tab-'+t).style.display = t === name ? '' : 'none';
+    document.getElementById('nav'+t.charAt(0).toUpperCase()+t.slice(1))?.classList.toggle('active', t === name);
+  });
+  if (name === 'mentees' && !menteesLoaded) loadMentees();
+  if (name === 'submissions' && !subsLoadedOnce) loadSubs('submitted', document.querySelector('#tab-submissions .tab-btn'));
+  if (name === 'messages' && !messagesLoaded) loadMessages();
+}
+
+async function loadOverview() {
+  const me = await api.get('/api/mentor/me', 'mentor');
+  if (me?.full_name) document.getElementById('welcomeMsg').textContent = `Welcome back, ${me.full_name.split(' ')[0]}`;
+  const stats = await api.get('/api/mentor/stats', 'mentor');
+  if (stats) {
+    document.getElementById('statMentees').textContent = stats.mentee_count;
+    document.getElementById('statPending').textContent = stats.pending_submissions;
+    document.getElementById('statAvg').textContent = stats.avg_points;
+  }
+}
+
+let menteesLoaded = false;
+async function loadMentees() {
+  menteesLoaded = true;
+  const list = await api.get('/api/mentor/mentees', 'mentor') || [];
+  const el = document.getElementById('menteesList');
+  if (!list.length) {
+    el.innerHTML = `<div class="empty-state"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><p>No mentees assigned yet</p></div>`;
+    return;
+  }
+  el.innerHTML = list.map(m => `
+    <div class="mentee-card">
+      <div class="avatar">${m.profile_photo ? `<img src="${m.profile_photo}"/>` : esc(m.full_name?.charAt(0) || '?')}</div>
+      <div style="flex:1;">
+        <div style="font-weight:700;font-size:0.88rem;">${esc(m.full_name)}</div>
+        <div style="font-size:0.74rem;color:var(--muted);">${esc(m.email)} · ${esc(m.fellow_id||'')} · ${esc(m.tracks?.name||'No track')}</div>
+      </div>
+      <div style="font-weight:700;font-size:0.9rem;color:var(--brand-accent);">${m.points||0} pts</div>
+    </div>`).join('');
+}
+
+let subsLoadedOnce = false, subsCache = [];
+async function loadSubs(status, btn) {
+  subsLoadedOnce = true;
+  document.querySelectorAll('#tab-submissions .tab-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  const list = document.getElementById('subList');
+  list.innerHTML = '<div class="flex-center" style="padding:40px;"><span class="loader"></span></div>';
+  const url = '/api/mentor/submissions' + (status ? `?status=${status}` : '');
+  subsCache = await api.get(url, 'mentor') || [];
+
+  if (!subsCache.length) {
+    list.innerHTML = `<div class="card flex-center" style="padding:48px;flex-direction:column;gap:10px;color:var(--muted);">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3"><path d="M9 11l3 3L22 4"/></svg>
+      <p style="font-size:0.84rem;">Nothing here.</p></div>`;
+    return;
+  }
+
+  list.innerHTML = subsCache.map(s => {
+    const pct = s.grade != null ? Math.round((s.grade / (s.assignments?.max_score||100)) * 100) : null;
+    const band = pct == null ? '' : pct >= 80 ? 'good' : pct >= 60 ? 'mid' : 'low';
+    const statusBadge = { submitted: '<span class="badge badge-pending">Ungraded</span>', graded: '<span class="badge badge-approved">Approved</span>', returned: '<span class="badge badge-danger">Needs revision</span>' }[s.status] || '';
+    return `
+    <div class="sub-row" onclick="openGrade('${s.id}')">
+      <div class="avatar" style="width:38px;height:38px;flex-shrink:0;">${s.fellows?.profile_photo ? `<img src="${s.fellows.profile_photo}" alt=""/>` : esc(s.fellows?.full_name?.charAt(0) || '?')}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:700;font-size:0.86rem;">${esc(s.fellows?.full_name || 'Unknown')}</div>
+        <div class="sr-meta">${esc(s.assignments?.title || '')} · Submitted ${formatDate(s.submitted_at)}</div>
+      </div>
+      ${pct != null ? `<span class="grade-band ${band}">${s.grade}/${s.assignments.max_score}</span>` : ''}
+      ${statusBadge}
+    </div>`;
+  }).join('');
+}
+
+function openGrade(id) {
+  const s = subsCache.find(x => x.id === id);
+  if (!s) return;
+  document.getElementById('gradeSubId').value = s.id;
+  document.getElementById('gradeAssignTitle').textContent = s.assignments?.title || '';
+  document.getElementById('gradeFellowLine').textContent = `${s.fellows?.full_name || ''} · Submitted ${formatDate(s.submitted_at)}`;
+  document.getElementById('gradeContent').textContent = s.content || '(no written answer)';
+  const fileLink = document.getElementById('gradeFileLink');
+  if (s.file_url) { fileLink.style.display = 'block'; fileLink.href = s.file_url; } else { fileLink.style.display = 'none'; }
+  document.getElementById('gradeMax').textContent = s.assignments?.max_score || 100;
+  document.getElementById('gradePoints').value = s.grade != null ? s.grade : '';
+  document.getElementById('gradeDecision').value = s.status === 'returned' ? 'needs_revision' : 'approved';
+  document.getElementById('gradeFeedback').value = s.feedback || '';
+  document.getElementById('gradeAlert').classList.remove('show');
+  openModal('gradeModal');
+}
+
+async function saveGrade() {
+  const id = document.getElementById('gradeSubId').value;
+  const decision = document.getElementById('gradeDecision').value;
+  const grade = document.getElementById('gradePoints').value;
+  const feedback = document.getElementById('gradeFeedback').value;
+  const alertBox = document.getElementById('gradeAlert');
+  if (decision === 'approved' && grade === '') { alertBox.textContent = 'Enter the points scored to approve.'; alertBox.classList.add('show'); return; }
+  const btn = document.getElementById('saveGradeBtn');
+  btn.disabled = true; btn.innerHTML = '<span class="loader"></span>';
+  const r = await api.patch(`/api/mentor/submissions/${id}/grade`, { decision, grade: grade === '' ? null : Number(grade), feedback }, 'mentor');
+  btn.disabled = false; btn.textContent = 'Save Review';
+  if (r?.success) {
+    showToast(`Review saved${r.points_awarded ? ` — ${r.points_awarded} points awarded` : ''}`, 'success');
+    closeModal('gradeModal');
+    loadSubs(document.querySelector('#tab-submissions .tab-btn.active')?.textContent === 'Ungraded' ? 'submitted' : '', null);
+    loadOverview();
+  } else {
+    alertBox.textContent = r?.error || 'Failed to save'; alertBox.classList.add('show');
+  }
+}
+
+let messagesLoaded = false, allMessages = [];
+async function loadMessages() {
+  messagesLoaded = true;
+  allMessages = await api.get('/api/mentor/messages', 'mentor') || [];
+  const el = document.getElementById('messageList');
+  if (!allMessages.length) {
+    el.innerHTML = '<div class="empty-state" style="padding:40px;"><p style="font-size:0.84rem;color:var(--muted);">No messages yet</p></div>';
+    return;
+  }
+  el.innerHTML = allMessages.map(m => `
+    <div class="msg-item ${m.status==='unread'?'unread':''}" id="msgItem-${m.id}" onclick="openThread('${m.id}')">
+      <div class="avatar">${m.fellows?.profile_photo ? `<img src="${m.fellows.profile_photo}"/>` : esc(m.fellows?.full_name?.charAt(0)||'?')}</div>
+      <div style="flex:1;min-width:0;">
+        <span class="msg-subject">${esc(m.fellows?.full_name || 'Unknown')}</span>
+        <div class="msg-preview">${esc(m.subject)}</div>
+        <div style="font-size:0.68rem;color:var(--muted2);margin-top:2px;">${formatDate(m.sent_at)}</div>
+      </div>
+    </div>`).join('');
+}
+
+function openThread(msgId) {
+  document.querySelectorAll('.msg-item').forEach(el => el.classList.remove('selected'));
+  document.getElementById(`msgItem-${msgId}`)?.classList.add('selected');
+  const msg = allMessages.find(m => m.id === msgId);
+  if (!msg) return;
+  const replies = msg.message_replies || [];
+  document.getElementById('threadView').innerHTML = `
+    <div style="padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px;">
+      <div class="avatar avatar-lg">${msg.fellows?.profile_photo ? `<img src="${msg.fellows.profile_photo}"/>` : esc(msg.fellows?.full_name?.charAt(0)||'?')}</div>
+      <div><div style="font-weight:700;font-size:0.95rem;">${esc(msg.fellows?.full_name || 'Unknown')}</div>
+      <div style="font-size:0.74rem;color:var(--muted);">${esc(msg.fellows?.email || '')}</div></div>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:20px 24px;">
+      <div style="font-size:0.74rem;color:var(--muted2);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.06em;font-weight:600;">Subject: ${esc(msg.subject)}</div>
+      <div class="reply-bubble">${esc(msg.message)}</div>
+      <div style="font-size:0.7rem;color:var(--muted2);margin-bottom:20px;">${formatDate(msg.sent_at)}</div>
+      ${replies.map(r => `
+        <div style="font-size:0.7rem;color:var(--muted2);text-align:right;margin-bottom:4px;">You · ${formatDate(r.replied_at)}</div>
+        <div class="reply-bubble mentor">${esc(r.reply)}</div>`).join('')}
+    </div>
+    <div style="padding:16px 24px;border-top:1px solid var(--border);">
+      <textarea class="form-control" id="replyText" rows="3" placeholder="Type your reply..."></textarea>
+      <div style="display:flex;justify-content:flex-end;margin-top:10px;">
+        <button class="btn btn-primary" onclick="sendReply('${msgId}')">Send Reply</button>
+      </div>
+    </div>`;
+}
+
+async function sendReply(msgId) {
+  const reply = document.getElementById('replyText').value.trim();
+  if (!reply) return showToast('Please type a reply', 'error');
+  const r = await api.post(`/api/mentor/messages/${msgId}/reply`, { reply }, 'mentor');
+  if (r?.success) { showToast('Reply sent!', 'success'); loadMessages(); }
+  else showToast(r?.error || 'Failed', 'error');
+}
+
+async function postAnnouncement() {
+  const title = document.getElementById('annTitle').value.trim();
+  const content = document.getElementById('annBody').value.trim();
+  if (!title) return showToast('Add a title', 'error');
+  const r = await api.post('/api/mentor/announcements', { title, content }, 'mentor');
+  if (r?.success) {
+    showToast('Posted to your mentees!', 'success');
+    document.getElementById('annTitle').value = ''; document.getElementById('annBody').value = '';
+  } else showToast(r?.error || 'Failed to post', 'error');
+}
+
+loadOverview();
+</script>
+</body>
+</html>

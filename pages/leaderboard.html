@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Leaderboard — Drix Tech Talent</title>
+<link rel="stylesheet" href="/css/style.css"/>
+<style>
+.podium{display:flex;align-items:flex-end;justify-content:center;gap:16px;margin-bottom:44px;}
+.pod-slot{text-align:center;}
+.pod-av{border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;font-weight:800;margin:0 auto 9px;border:3px solid transparent;overflow:hidden;}
+.pod-av img{width:100%;height:100%;object-fit:cover;}
+.pod-slot:nth-child(2) .pod-av{width:76px;height:76px;font-size:1.6rem;border-color:var(--gold);}
+.pod-slot:nth-child(1) .pod-av{width:62px;height:62px;font-size:1.3rem;border-color:#94a3b8;}
+.pod-slot:nth-child(3) .pod-av{width:62px;height:62px;font-size:1.3rem;border-color:#cd7f32;}
+.pod-block{border-radius:10px 10px 0 0;width:88px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:800;margin:10px auto 0;}
+.rank-row{display:flex;align-items:center;gap:14px;padding:13px 18px;border-radius:var(--r);background:var(--surface);border:1px solid var(--border);margin-bottom:8px;transition:var(--trans);}
+.rank-row:hover{border-color:var(--border2);}
+.rank-row.me{border-color:rgba(124,110,247,0.4);background:rgba(124,110,247,0.04);}
+.rank-num{font-size:0.95rem;font-weight:800;color:var(--muted2);width:30px;text-align:center;flex-shrink:0;}
+.rank-av{width:38px;height:38px;border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.85rem;flex-shrink:0;overflow:hidden;}
+.rank-av img{width:100%;height:100%;object-fit:cover;}
+</style>
+</head>
+<body>
+<aside class="sidebar">
+  <div class="sidebar-logo">DRIX Tech Talent<span>Fellow Portal</span></div>
+  <nav class="sidebar-nav">
+    <div class="sidebar-section-label">Main</div>
+    <a href="/dashboard" class="sidebar-link"><span class="icon">🏠</span> Dashboard</a>
+    <a href="/dashboard/courses" class="sidebar-link"><span class="icon">📚</span> My Courses</a>
+    <a href="/dashboard/community" class="sidebar-link"><span class="icon">👥</span> Community</a>
+    <a href="/dashboard/leaderboard" class="sidebar-link active"><span class="icon">🏆</span> Leaderboard</a>
+    <a href="/dashboard/profile" class="sidebar-link"><span class="icon">👤</span> My Profile</a>
+  </nav>
+  <div class="sidebar-bottom"><button onclick="logout()" class="btn btn-outline w-full btn-sm">← Sign Out</button></div>
+</aside>
+<main class="main-content">
+  <div class="flex-between mb-6">
+    <div><h1 style="font-size:1.5rem;letter-spacing:-0.02em;">🏆 Leaderboard</h1><p style="color:var(--muted);font-size:0.82rem;">Top fellows ranked by points</p></div>
+    <div id="myRankBadge" style="background:rgba(124,110,247,0.1);border:1px solid rgba(124,110,247,0.25);padding:9px 16px;border-radius:50px;font-size:0.82rem;display:none;"></div>
+  </div>
+  <div class="podium" id="podium"></div>
+  <div class="card"><h3 style="font-size:0.95rem;margin-bottom:18px;">All Rankings</h3><div id="rankList"><div style="text-align:center;padding:40px;"><span class="loader"></span></div></div></div>
+</main>
+<script src="/js/app.js"></script>
+<script>
+// ── FELLOW TOKEN GUARD ────────────────────────────────────────────
+if (!localStorage.getItem('drix_token')) {
+  window.location.href = '/login';
+}
+
+</script>
+<script>
+async function load(){
+  const [board,me,badgeDefs]=await Promise.all([api.get('/api/fellows/leaderboard'),api.get('/api/fellows/me'),api.get('/api/fellows/badge-defs')]);
+  if(!board?.length){document.getElementById('rankList').innerHTML='<div class="empty-state"><div class="icon">🏆</div><p>No rankings yet</p></div>';return;}
+  const defs = (badgeDefs||[]).slice().sort((a,b)=>b.min_points-a.min_points);
+  const topBadge = pts => { const b = defs.find(d=>pts>=d.min_points); return b ? `<span title="${b.label}" style="margin-left:6px;">${b.icon}</span>` : ''; };
+  const myId=me?.fellow?.id;
+  const myRank=board.findIndex(f=>f.id===myId)+1;
+  if(myRank>0){const b=document.getElementById('myRankBadge');b.style.display='block';b.innerHTML=`Your Rank: <strong style="color:var(--accent2);">#${myRank}</strong>`;}
+  // Podium
+  const top=board.slice(0,3);
+  const order=top.length>=3?[top[1],top[0],top[2]]:top;
+  const heights=[100,140,80];const medals=['🥈','🥇','🥉'];const colors=['#94a3b8','#fbbf24','#cd7f32'];
+  document.getElementById('podium').innerHTML=order.map((f,i)=>`
+    <div class="pod-slot">
+      <div class="pod-av">${f.profile_photo?`<img src="${f.profile_photo}"/>`:(f.full_name?.charAt(0)||'?')}</div>
+      <div style="font-size:0.78rem;font-weight:600;margin-bottom:3px;">${f.full_name?.split(' ')[0]}${topBadge(f.points)}</div>
+      <div style="font-size:0.72rem;color:var(--muted);">🪙 ${f.points}</div>
+      <div class="pod-block" style="height:${heights[i]}px;background:${colors[i]}18;border:2px solid ${colors[i]}40;">${medals[i]}</div>
+    </div>`).join('');
+  document.getElementById('rankList').innerHTML=board.map((f,i)=>`
+    <div class="rank-row ${f.id===myId?'me':''}">
+      <div class="rank-num">${i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1)}</div>
+      <div class="rank-av">${f.profile_photo?`<img src="${f.profile_photo}"/>`:(f.full_name?.charAt(0)||'?')}</div>
+      <div><div style="font-weight:600;font-size:0.88rem;">${f.full_name}${topBadge(f.points)} ${f.id===myId?'<span style="color:var(--accent2);font-size:0.72rem;">(You)</span>':''}</div><div style="font-size:0.74rem;color:var(--muted);">${f.tracks?.name||'—'} · ${f.fellow_id||''}</div></div>
+      <div style="margin-left:auto;font-weight:700;color:var(--accent2);">🪙 ${f.points}</div>
+    </div>`).join('');
+}
+load();
+</script>
+</body>
+</html>

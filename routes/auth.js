@@ -2,10 +2,12 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const supabase = require('../config/supabase');
 const { getSettings, cleanText, isUuid, safe } = require('../services/util');
 const { verifyRegistrationPayment } = require('../services/payments');
-const { sendToFellow } = require('../services/email');
+const { sendToFellow, sendEmail, templates } = require('../services/email');
+const { invalidateUser } = require('../middleware/auth');
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // Used to keep response time constant when the email doesn't exist (prevents account enumeration by timing)
@@ -182,6 +184,119 @@ router.post('/mentor/login', async (req, res) => {
   } catch (err) {
     console.error('Mentor login error:', err);
     res.status(500).json({ error: 'Login failed. Please try again.' });
+  }
+});
+
+// ─── FORGOT / RESET PASSWORD (fellow, admin, mentor) — OTP-based ────
+const OTP_TTL_MS = 10 * 60 * 1000; // 10 minutes
+const MAX_OTP_ATTEMPTS = 5;
+const hashToken = t => crypto.createHash('sha256').update(String(t)).digest('hex');
+const GENERIC_FORGOT_RESPONSE = { success: true, message: 'If an account exists with that email, a code has been sent.' };
+
+const RESET_AUDIENCES = {
+  fellow: { table: 'fellows', loginPath: '/login' },
+  admin:  { table: 'admins',  loginPath: '/admin/login' },
+  mentor: { table: 'mentors', loginPath: '/mentor/login' },
+};
+
+function genOtp() { return String(crypto.randomInt(100000, 1000000)); } // 6 digits, zero-safe range
+
+// Looks up the OTP row for (email, audience) and validates it against `otp`. Returns the person
+// row on success, or null. Increments the attempt counter on a wrong OTP so it can't be brute-forced
+// (a fresh code resets the counter).
+async function checkOtp(cfg, email, otp) {
+  const { data: person } = await supabase.from(cfg.table)
+    .select('id, full_name, email, reset_token_hash, reset_token_expires, reset_otp_attempts')
+    .eq('email', email).maybeSingle();
+  if (!person || !person.reset_token_hash || !person.reset_token_expires) return { error: 'No code was requested for this email.' };
+  if (new Date(person.reset_token_expires) < new Date()) return { error: 'This code has expired. Please request a new one.' };
+  if ((person.reset_otp_attempts || 0) >= MAX_OTP_ATTEMPTS) return { error: 'Too many incorrect attempts. Please request a new code.' };
+
+  if (hashToken(otp) !== person.reset_token_hash) {
+    await supabase.from(cfg.table).update({ reset_otp_attempts: (person.reset_otp_attempts || 0) + 1 }).eq('id', person.id);
+    return { error: 'Incorrect code. Please try again.' };
+  }
+  return { person };
+}
+
+// Same handler for all three audiences — only the table differs. Always responds with the same
+// generic message whether or not the email exists, so this can't be used to enumerate accounts.
+async function handleForgotPassword(req, res, audience) {
+  try {
+    const email = String(req.body?.email || '').trim().toLowerCase();
+    if (!email) return res.json(GENERIC_FORGOT_RESPONSE);
+
+    const cfg = RESET_AUDIENCES[audience];
+    let query = supabase.from(cfg.table).select('id, full_name, email').eq('email', email);
+    query = audience === 'fellow' ? query.eq('status', 'approved') : query.eq('is_active', true);
+    const { data: person } = await query.maybeSingle();
+
+    if (person) {
+      const otp = genOtp();
+      await supabase.from(cfg.table).update({
+        reset_token_hash: hashToken(otp),
+        reset_token_expires: new Date(Date.now() + OTP_TTL_MS).toISOString(),
+        reset_otp_attempts: 0,
+      }).eq('id', person.id);
+
+      if (audience === 'fellow') {
+        await sendToFellow('password_reset', person, { otp });
+      } else {
+        const { subject, html } = templates.password_reset(person, { otp });
+        await sendEmail({ to: person.email, toName: person.full_name, subject, html, type: 'password_reset' });
+      }
+    }
+    res.json(GENERIC_FORGOT_RESPONSE);
+  } catch (err) {
+    console.error('Forgot password error:', err);
+    res.json(GENERIC_FORGOT_RESPONSE); // never leak errors here either
+  }
+}
+
+router.post('/forgot-password', (req, res) => handleForgotPassword(req, res, 'fellow'));
+router.post('/admin/forgot-password', (req, res) => handleForgotPassword(req, res, 'admin'));
+router.post('/mentor/forgot-password', (req, res) => handleForgotPassword(req, res, 'mentor'));
+
+// Checks the OTP without consuming it, so the frontend can move to the "choose a new password"
+// step. The final /reset-password call below re-checks it for real before touching anything.
+router.post('/verify-otp', async (req, res) => {
+  try {
+    const email = String(req.body?.email || '').trim().toLowerCase();
+    const otp = String(req.body?.otp || '').trim();
+    const audience = RESET_AUDIENCES[req.body?.audience] ? req.body.audience : null;
+    if (!email || !otp || !audience) return res.status(400).json({ error: 'Invalid request.' });
+
+    const result = await checkOtp(RESET_AUDIENCES[audience], email, otp);
+    if (result.error) return res.status(400).json({ error: result.error });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Verify OTP error:', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
+  }
+});
+
+router.post('/reset-password', async (req, res) => {
+  try {
+    const email = String(req.body?.email || '').trim().toLowerCase();
+    const otp = String(req.body?.otp || '').trim();
+    const password = req.body?.password;
+    const audience = RESET_AUDIENCES[req.body?.audience] ? req.body.audience : null;
+    if (!email || !otp || !audience) return res.status(400).json({ error: 'Invalid request.' });
+    if (typeof password !== 'string' || password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters.' });
+
+    const cfg = RESET_AUDIENCES[audience];
+    const result = await checkOtp(cfg, email, otp);
+    if (result.error) return res.status(400).json({ error: result.error });
+
+    const password_hash = await bcrypt.hash(password, 12);
+    await supabase.from(cfg.table)
+      .update({ password_hash, reset_token_hash: null, reset_token_expires: null, reset_otp_attempts: 0 })
+      .eq('id', result.person.id);
+    invalidateUser(result.person.id);
+    res.json({ success: true, redirect: cfg.loginPath });
+  } catch (err) {
+    console.error('Reset password error:', err);
+    res.status(500).json({ error: 'Failed to reset password.' });
   }
 });
 

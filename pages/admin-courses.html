@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Tracks & Modules — Drix Admin</title>
+<link rel="stylesheet" href="/css/style.css"/>
+<style>
+.track-pill{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:var(--r);cursor:pointer;transition:var(--trans);border:1px solid transparent;margin-bottom:4px;font-size:0.82rem;font-weight:500;color:var(--muted);}
+.track-pill:hover{background:var(--surface2);color:var(--text);}
+.track-pill.active{background:rgba(124,110,247,0.1);border-color:rgba(124,110,247,0.2);color:var(--brand-primary);font-weight:600;}
+.track-dot{width:7px;height:7px;border-radius:50%;background:var(--grad2);flex-shrink:0;}
+.upload-progress{height:4px;background:var(--surface3);border-radius:2px;overflow:hidden;margin-top:8px;display:none;}
+.upload-bar{height:100%;background:var(--grad2);transition:width 0.3s;}
+
+/* Mobile two-pane */
+@media(max-width:700px){
+  .two-pane{flex-direction:column!important;}
+  .track-pane{width:100%!important;max-height:240px;overflow-y:auto;}
+}
+</style>
+</head>
+<body>
+<div class="layout">
+<aside class="sidebar">
+  <div class="sidebar-logo">DRIX Admin<span>Management Portal</span></div>
+  <nav class="sidebar-nav">
+    <div class="sidebar-section-label">Overview</div>
+    <a href="/admin/dashboard" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>Dashboard</a>
+    <a href="/admin/fellows" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></span>Fellows</a>
+    <a href="/admin/mentors" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>Mentors</a>
+    <a href="/admin/checkins" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>Check-ins</a>
+    <div class="sidebar-section-label">Content</div>
+    <a href="/admin/courses" class="sidebar-link active"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span>Tracks & Modules</a>
+    <a href="/admin/cohorts" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>Cohorts</a>
+    <a href="/admin/announcements" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg></span>Announcements</a>
+    <a href="/admin/submissions" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>Submissions</a>
+    <a href="/admin/certificates" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg></span>Certificates</a>
+    <a href="/admin/messages" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></span>Messages</a>
+    <div class="sidebar-section-label">System</div>
+    <a href="/admin/settings" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M19.07 19.07l-1.41-1.41M4.93 19.07l1.41-1.41M12 2v2M12 20v2M2 12h2M20 12h2"/></svg></span>Settings</a>
+  </nav>
+  <div class="sidebar-bottom"><button onclick="adminLogout()" class="btn btn-outline w-full btn-sm">Sign Out</button></div>
+</aside>
+
+<main class="main-content">
+  <div class="flex-between mb-6">
+    <div><h1 style="font-size:1.5rem;font-weight:800;letter-spacing:-0.03em;">Tracks & Modules</h1><p style="color:var(--muted);font-size:0.82rem;margin-top:3px;">Manage tracks, modules, lessons and files</p></div>
+    <button class="btn btn-primary" onclick="openModal('addTrackModal')">
+      <span class="icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span>
+      Add Track
+    </button>
+  </div>
+
+  <div class="two-pane" style="display:flex;gap:20px;">
+    <!-- TRACK LIST -->
+    <div class="track-pane card" style="width:220px;flex-shrink:0;padding:14px;">
+      <div style="font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:var(--muted2);margin-bottom:10px;">Tracks</div>
+      <div id="trackList"><div class="flex-center" style="padding:20px;"><span class="loader"></span></div></div>
+    </div>
+
+    <!-- MODULE CONTENT -->
+    <div style="flex:1;min-width:0;" id="moduleArea">
+      <div class="card flex-center" style="padding:60px;flex-direction:column;gap:12px;color:var(--muted);">
+        <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        <p style="font-size:0.84rem;">Select a track to manage its modules</p>
+      </div>
+    </div>
+  </div>
+</main>
+</div>
+
+<!-- ADD TRACK MODAL -->
+<div class="modal-overlay" id="addTrackModal">
+  <div class="modal" style="max-width:460px;">
+    <div class="modal-header"><div class="modal-title">Add New Track</div><button class="modal-close" onclick="closeModal('addTrackModal')">✕</button></div>
+    <input type="hidden" id="editTrackId"/>
+    <div class="form-group"><label class="form-label">Track Name *</label><input type="text" class="form-control" id="trackName" placeholder="e.g. Blockchain Development"/></div>
+    <div class="grid-2">
+      <div class="form-group"><label class="form-label">Level</label>
+        <select class="form-control" id="trackLevel">
+          <option value="Beginner">Beginner</option>
+          <option value="Intermediate">Intermediate</option>
+          <option value="Advanced">Advanced</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Duration (weeks)</label><input type="number" class="form-control" id="trackWeeks" value="12" min="1"/></div>
+    </div>
+    <div class="form-group"><label class="form-label">Description</label><textarea class="form-control" id="trackDesc" rows="2" placeholder="Brief description of the track..."></textarea></div>
+    <div style="display:flex;gap:10px;margin-top:8px;">
+      <button class="btn btn-primary" onclick="saveTrack()">Save Track</button>
+      <button class="btn btn-outline" onclick="closeModal('addTrackModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD MODULE MODAL -->
+<div class="modal-overlay" id="addModuleModal">
+  <div class="modal" style="max-width:460px;">
+    <div class="modal-header"><div class="modal-title" id="moduleModalTitle">Add Module</div><button class="modal-close" onclick="closeModal('addModuleModal')">✕</button></div>
+    <input type="hidden" id="moduleTrackId"/>
+    <input type="hidden" id="moduleEditId"/>
+    <div class="form-group"><label class="form-label">Module Title *</label><input type="text" class="form-control" id="moduleTitle" placeholder="e.g. Introduction to Cybersecurity"/></div>
+    <div class="form-group"><label class="form-label">Description</label><textarea class="form-control" id="moduleDesc" rows="3" placeholder="What students will learn..."></textarea></div>
+    <div class="form-group"><label class="form-label">Order Number</label><input type="number" class="form-control" id="moduleOrder" value="1" min="1"/></div>
+    <div style="display:flex;gap:10px;">
+      <div class="form-group" style="flex:1;"><label class="form-label">Unlocks at</label><input type="datetime-local" class="form-control" id="moduleUnlockAt"/></div>
+      <div class="form-group" style="flex:1;"><label class="form-label">Deadline</label><input type="datetime-local" class="form-control" id="moduleDeadlineAt"/></div>
+    </div>
+    <p style="font-size:0.7rem;color:var(--muted);margin-top:-8px;margin-bottom:14px;">Leave "Unlocks at" empty for the module to be open immediately. It opens automatically once the date passes — no action needed.</p>
+    <div style="display:flex;gap:10px;margin-top:8px;">
+      <button class="btn btn-primary" id="saveModuleBtn" onclick="saveModule()">Add Module</button>
+      <button class="btn btn-outline" onclick="closeModal('addModuleModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD LESSON MODAL -->
+<div class="modal-overlay" id="addLessonModal">
+  <div class="modal" style="max-width:560px;">
+    <div class="modal-header"><div class="modal-title">Add Lesson</div><button class="modal-close" onclick="closeModal('addLessonModal')">✕</button></div>
+    <input type="hidden" id="lessonModuleId"/>
+    <div class="grid-2">
+      <div class="form-group"><label class="form-label">Title *</label><input type="text" class="form-control" id="lessonTitle" placeholder="Lesson title"/></div>
+      <div class="form-group"><label class="form-label">Type *</label>
+        <select class="form-control" id="lessonType" onchange="onLessonTypeChange()">
+          <option value="video">Video</option>
+          <option value="pdf">PDF</option>
+          <option value="document">Word / Document</option>
+          <option value="audio">Audio</option>
+          <option value="article">Article / Text</option>
+          <option value="link">Link (URL)</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group"><label class="form-label">Description</label><textarea class="form-control" id="lessonDesc" rows="2" placeholder="Brief description..."></textarea></div>
+
+    <div id="fileUploadSection">
+      <div class="form-group">
+        <label class="form-label">Upload File from Computer</label>
+        <div class="file-drop" id="lessonFileDrop" onclick="document.getElementById('lessonFileInput').click()">
+          <input type="file" id="lessonFileInput" accept="video/*,.pdf,.doc,.docx,.ppt,.pptx,.mp3,.wav"/>
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.5" style="margin-bottom:8px;"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+          <div style="font-weight:600;font-size:0.82rem;margin-bottom:3px;">Drop file or click to browse</div>
+          <div style="font-size:0.72rem;color:var(--muted2);">Video, PDF, Word, Audio — max 200MB</div>
+          <div id="selectedFileName" style="margin-top:8px;font-size:0.76rem;color:var(--brand-accent);display:none;"></div>
+        </div>
+        <div class="upload-progress" id="uploadProgress"><div class="upload-bar" id="uploadBar" style="width:0%"></div></div>
+        <input type="hidden" id="lessonFileUrl"/>
+      </div>
+    </div>
+
+    <div id="textContentSection" style="display:none;">
+      <div class="form-group"><label class="form-label">Article Content</label><textarea class="form-control" id="lessonContent" rows="6" placeholder="Write article content here..."></textarea></div>
+    </div>
+
+    <div id="linkSection" style="display:none;">
+      <div class="form-group">
+        <label class="form-label">Paste Link URL *</label>
+        <input type="url" class="form-control" id="lessonLinkUrl" placeholder="https://youtube.com/watch?v=... or any URL"/>
+        <div style="font-size:0.72rem;color:var(--muted);margin-top:5px;">When a fellow clicks this lesson, it will open the link in a new tab.</div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="form-group"><label class="form-label">Duration (mins)</label><input type="number" class="form-control" id="lessonDuration" value="30" min="1"/></div>
+      <div class="form-group"><label class="form-label">Points Reward</label><input type="number" class="form-control" id="lessonPoints" value="10" min="0"/></div>
+    </div>
+    <div class="form-group"><label class="form-label">Order Index</label><input type="number" class="form-control" id="lessonOrder" value="1" min="1"/></div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;">
+      <label class="toggle"><input type="checkbox" id="lessonFreePreview"/><span class="toggle-slider"></span></label>
+      <span style="font-size:0.82rem;color:var(--muted);">Free preview (visible without login)</span>
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-primary" id="saveLessonBtn" onclick="saveLesson()">Add Lesson</button>
+      <button class="btn btn-outline" onclick="closeModal('addLessonModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD ASSIGNMENT MODAL -->
+<div class="modal-overlay" id="addAssignmentModal">
+  <div class="modal" style="max-width:500px;">
+    <div class="modal-header"><div class="modal-title">Add Assignment</div><button class="modal-close" onclick="closeModal('addAssignmentModal')">✕</button></div>
+    <input type="hidden" id="assignModuleId"/>
+    <div class="form-group"><label class="form-label">Title *</label><input type="text" class="form-control" id="assignTitle" placeholder="Assignment title"/></div>
+    <div class="form-group"><label class="form-label">Description</label><textarea class="form-control" id="assignDesc" rows="2"></textarea></div>
+    <div class="form-group"><label class="form-label">Instructions</label><textarea class="form-control" id="assignInstructions" rows="4" placeholder="Detailed instructions for students..."></textarea></div>
+    <div class="grid-2">
+      <div class="form-group"><label class="form-label">Due (days)</label><input type="number" class="form-control" id="assignDueDays" value="7" min="1"/></div>
+      <div class="form-group"><label class="form-label">Max Score</label><input type="number" class="form-control" id="assignMaxScore" value="100" min="1"/></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:8px;">
+      <button class="btn btn-primary" onclick="saveAssignment()">Add Assignment</button>
+      <button class="btn btn-outline" onclick="closeModal('addAssignmentModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/app.js"></script>
+<script src="/js/mobile.js"></script>
+<script>
+if (!auth.getAdminToken()) window.location.href = '/admin/login';
+
+let selectedTrackId = null;
+let selectedTrackName = '';
+let uploadedFileUrl = '';
+
+// ── LOAD TRACKS ───────────────────────────────────────────────────────
+async function loadTracks() {
+  const data = await api.get('/api/admin/tracks', true);
+  const list = document.getElementById('trackList');
+  if (!data?.length) {
+    list.innerHTML = '<p style="font-size:0.78rem;color:var(--muted);padding:8px;">No tracks yet. Click "Add Track" above.</p>';
+    return;
+  }
+  list.innerHTML = data.map(t => `
+    <div class="track-pill" id="pill-${t.id}" onclick="selectTrack('${t.id}', '${t.name.replace(/'/g, "\\'")}')">
+      <div class="track-dot"></div>
+      <span style="flex:1;">${t.name}</span>
+      <button onclick="event.stopPropagation();editTrack('${t.id}','${t.name.replace(/'/g,"\\'")}','${t.level||''}',${t.duration_weeks||12},'${(t.description||'').replace(/'/g,"\\'")}')" style="background:none;border:none;color:var(--muted);cursor:pointer;padding:2px;" title="Edit">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      </button>
+    </div>`).join('');
+}
+
+// ── SELECT TRACK ──────────────────────────────────────────────────────
+async function selectTrack(trackId, trackName) {
+  selectedTrackId = trackId;
+  selectedTrackName = trackName;
+  document.querySelectorAll('.track-pill').forEach(p => p.classList.remove('active'));
+  document.getElementById(`pill-${trackId}`)?.classList.add('active');
+  await loadModules(trackId, trackName);
+}
+
+// ── SAVE / EDIT TRACK ─────────────────────────────────────────────────
+async function saveTrack() {
+  const name = document.getElementById('trackName').value.trim();
+  if (!name) return showToast('Track name is required', 'error');
+  const id = document.getElementById('editTrackId').value;
+  const payload = {
+    name,
+    level: document.getElementById('trackLevel').value,
+    duration_weeks: parseInt(document.getElementById('trackWeeks').value) || 12,
+    description: document.getElementById('trackDesc').value,
+    slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+    is_active: true
+  };
+  const r = id
+    ? await api.put(`/api/admin/tracks/${id}`, payload, true)
+    : await api.post('/api/admin/tracks', payload, true);
+
+  if (r?.success || r?.data) {
+    showToast(id ? 'Track updated!' : 'Track added!', 'success');
+    closeModal('addTrackModal');
+    document.getElementById('editTrackId').value = '';
+    loadTracks();
+  } else {
+    showToast(r?.error || 'Failed to save track', 'error');
+  }
+}
+
+function editTrack(id, name, level, weeks, desc) {
+  document.getElementById('editTrackId').value = id;
+  document.getElementById('trackName').value = name;
+  document.getElementById('trackLevel').value = level || 'Beginner';
+  document.getElementById('trackWeeks').value = weeks;
+  document.getElementById('trackDesc').value = desc;
+  openModal('addTrackModal');
+}
+
+// ── LOAD MODULES ──────────────────────────────────────────────────────
+async function loadModules(trackId, trackName) {
+  const area = document.getElementById('moduleArea');
+  area.innerHTML = '<div class="flex-center" style="padding:40px;"><span class="loader"></span></div>';
+  const modules = await api.get(`/api/modules/admin/track/${trackId}`, true);
+
+  window.currentModules = modules || [];
+  area.innerHTML = `
+    <div class="flex-between mb-4" style="flex-wrap:wrap;gap:8px;">
+      <h2 style="font-size:1rem;font-weight:700;">${trackName}</h2>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-outline btn-sm" onclick="openAddModule()">+ Add Module</button>
+        <button class="btn btn-outline btn-sm" onclick="openExamEditor('${trackId}')">Manage Exam</button>
+      </div>
+    </div>
+    <div id="modulesList">${renderModules(modules || [])}</div>`;
+}
+
+function moduleStateLabel(m) {
+  if (m.manual_lock) return { text: 'Locked by admin', cls: 'badge-danger' };
+  if (m.unlock_at && new Date(m.unlock_at) > new Date()) {
+    const days = Math.ceil((new Date(m.unlock_at) - new Date()) / 86400000);
+    return { text: `Unlocks in ${days} day${days===1?'':'s'}`, cls: 'badge-pending' };
+  }
+  return { text: 'Open', cls: 'badge-approved' };
+}
+
+function renderModules(modules) {
+  if (!modules.length) return `
+    <div class="card flex-center" style="padding:48px;flex-direction:column;gap:10px;color:var(--muted);">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      <p style="font-size:0.84rem;">No modules yet. Click "Add Module" to start building.</p>
+    </div>`;
+
+  return modules.map((m, i) => `
+    <div class="module-block animate-fade" style="animation-delay:${i*0.05}s;">
+      <div class="module-header" onclick="toggleMod('mod-${m.id}')">
+        <div class="module-num">${i+1}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:700;font-size:0.88rem;">${m.title}</div>
+          ${m.description ? `<div style="font-size:0.72rem;color:var(--muted);margin-top:1px;">${m.description}</div>` : ''}
+          <div style="font-size:0.68rem;color:var(--muted2);margin-top:3px;">${(m.lessons||[]).length} lessons · ${(m.assignments||[]).length} assignments</div>
+        </div>
+        <div style="display:flex;gap:5px;flex-shrink:0;flex-wrap:wrap;">
+          <span class="badge ${moduleStateLabel(m).cls}" style="align-self:center;">${moduleStateLabel(m).text}</span>
+          <button class="btn btn-outline btn-sm" onclick="event.stopPropagation();openEditModule('${m.id}')">Edit</button>
+          <button class="btn btn-outline btn-sm" onclick="event.stopPropagation();toggleModuleLock('${m.id}', ${!m.manual_lock})">${m.manual_lock ? 'Unlock' : 'Force Lock'}</button>
+          <button class="btn btn-outline btn-sm" onclick="event.stopPropagation();openAddLesson('${m.id}')">+ Lesson</button>
+          <button class="btn btn-outline btn-sm" onclick="event.stopPropagation();openAddAssignment('${m.id}')">+ Assignment</button>
+          <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteModule('${m.id}')">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+          </button>
+        </div>
+        <span class="icon-sm" style="color:var(--muted);flex-shrink:0;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span>
+      </div>
+
+      <div id="mod-${m.id}" class="module-lessons" style="display:none;">
+        ${renderLessons(m.lessons || [])}
+        ${renderAssignments(m.assignments || [])}
+      </div>
+    </div>`).join('');
+}
+
+function renderLessons(lessons) {
+  if (!lessons.length) return `<div style="padding:12px 22px;font-size:0.76rem;color:var(--muted2);">No lessons yet — click "+ Lesson" to add one</div>`;
+  const typeIcon = {
+    video:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>',
+    pdf:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
+    document:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
+    audio:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/></svg>',
+    article:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="17" y1="18" x2="3" y2="18"/></svg>'
+  };
+  const typeColor = { video:'lesson-type-video', pdf:'lesson-type-pdf', document:'lesson-type-document', audio:'lesson-type-quiz', article:'lesson-type-document' };
+  return lessons.map(l => `
+    <div class="lesson-row">
+      <div class="lesson-type-icon ${typeColor[l.type]||'lesson-type-document'}">${typeIcon[l.type]||typeIcon.document}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:0.82rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${l.title}</div>
+        <div style="font-size:0.7rem;color:var(--muted);">${l.type} · ${l.duration_minutes}min · ${l.points_reward}pts</div>
+      </div>
+      ${l.content_url ? `<span style="font-size:0.66rem;background:rgba(6,214,160,0.1);color:var(--brand-accent);border:1px solid rgba(6,214,160,0.2);padding:2px 7px;border-radius:4px;white-space:nowrap;">Uploaded</span>` : '<span style="font-size:0.66rem;color:var(--muted2);">No file</span>'}
+      <button class="btn btn-danger btn-sm" onclick="deleteLesson('${l.id}')">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+      </button>
+    </div>`).join('');
+}
+
+function renderAssignments(assignments) {
+  if (!assignments.length) return '';
+  return assignments.map(a => `
+    <div class="lesson-row" style="background:rgba(251,191,36,0.02);">
+      <div class="lesson-type-icon" style="background:rgba(251,191,36,0.1);color:var(--brand-warning);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      </div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:0.82rem;font-weight:600;">${a.title} <span style="font-size:0.66rem;background:rgba(251,191,36,0.1);color:var(--brand-warning);border:1px solid rgba(251,191,36,0.2);padding:2px 6px;border-radius:4px;">Assignment</span></div>
+        <div style="font-size:0.7rem;color:var(--muted);">Due: ${a.due_days}d · Max: ${a.max_score}</div>
+      </div>
+    </div>`).join('');
+}
+
+function toggleMod(id) {
+  const el = document.getElementById(id);
+  if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+// ── FILE UPLOAD ───────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  const input = document.getElementById('lessonFileInput');
+  const drop = document.getElementById('lessonFileDrop');
+  if (!input || !drop) return;
+  drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('dragover'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('dragover'));
+  drop.addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('dragover'); if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
+  input.addEventListener('change', () => { if (input.files[0]) handleFile(input.files[0]); });
+});
+
+async function handleFile(file) {
+  const nameEl = document.getElementById('selectedFileName');
+  const progress = document.getElementById('uploadProgress');
+  const bar = document.getElementById('uploadBar');
+  const btn = document.getElementById('saveLessonBtn');
+
+  nameEl.style.display = 'block';
+  nameEl.style.color = 'var(--muted)';
+  nameEl.textContent = `Uploading: ${file.name} (${formatSize(file.size)})...`;
+  progress.style.display = 'block';
+  btn.disabled = true;
+  btn.innerHTML = '<span class="loader"></span> Uploading...';
+
+  let prog = 0;
+  const iv = setInterval(() => { prog = Math.min(prog + 4, 80); bar.style.width = prog + '%'; }, 200);
+
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('track_id', selectedTrackId || 'general');
+  const result = await api.upload('/api/upload/lesson-file', fd, true);
+  clearInterval(iv);
+
+  if (result?.success) {
+    bar.style.width = '100%';
+    uploadedFileUrl = result.url;
+    nameEl.textContent = `Ready: ${file.name}`;
+    nameEl.style.color = 'var(--brand-accent)';
+    document.getElementById('lessonFileUrl').value = result.url;
+  } else {
+    progress.style.display = 'none';
+    nameEl.textContent = `Upload failed: ${result?.error || 'Try again'}`;
+    nameEl.style.color = 'var(--brand-danger)';
+    uploadedFileUrl = '';
+  }
+  btn.disabled = false;
+  btn.textContent = 'Add Lesson';
+}
+
+function onLessonTypeChange() {
+  const t = document.getElementById('lessonType').value;
+  const isArticle = t === 'article';
+  const isLink = t === 'link';
+  document.getElementById('fileUploadSection').style.display = (isArticle || isLink) ? 'none' : 'block';
+  document.getElementById('textContentSection').style.display = isArticle ? 'block' : 'none';
+  document.getElementById('linkSection').style.display = isLink ? 'block' : 'none';
+  const accept = { video:'video/*', pdf:'.pdf', document:'.doc,.docx,.ppt,.pptx', audio:'audio/*' };
+  document.getElementById('lessonFileInput').accept = accept[t] || '*';
+}
+
+// ── OPEN MODALS ───────────────────────────────────────────────────────
+function openAddModule() {
+  if (!selectedTrackId) return showToast('Select a track first', 'error');
+  document.getElementById('moduleModalTitle').textContent = 'Add Module';
+  document.getElementById('saveModuleBtn').textContent = 'Add Module';
+  document.getElementById('moduleEditId').value = '';
+  document.getElementById('moduleTrackId').value = selectedTrackId;
+  document.getElementById('moduleTitle').value = '';
+  document.getElementById('moduleDesc').value = '';
+  document.getElementById('moduleOrder').value = '1';
+  document.getElementById('moduleUnlockAt').value = '';
+  document.getElementById('moduleDeadlineAt').value = '';
+  openModal('addModuleModal');
+}
+
+function toLocalInput(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const pad = n => String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function openEditModule(id) {
+  const m = (window.currentModules||[]).find(x => x.id === id);
+  if (!m) return;
+  document.getElementById('moduleModalTitle').textContent = 'Edit Module';
+  document.getElementById('saveModuleBtn').textContent = 'Save Changes';
+  document.getElementById('moduleEditId').value = m.id;
+  document.getElementById('moduleTrackId').value = selectedTrackId;
+  document.getElementById('moduleTitle').value = m.title || '';
+  document.getElementById('moduleDesc').value = m.description || '';
+  document.getElementById('moduleOrder').value = m.order_index || 1;
+  document.getElementById('moduleUnlockAt').value = toLocalInput(m.unlock_at);
+  document.getElementById('moduleDeadlineAt').value = toLocalInput(m.deadline_at);
+  openModal('addModuleModal');
+}
+
+async function toggleModuleLock(id, locked) {
+  const r = await api.post(`/api/modules/admin/module/${id}/lock`, { locked }, true);
+  if (r?.success) selectTrack(selectedTrackId, selectedTrackName);
+  else showToast(r?.error || 'Failed to update lock', 'error');
+}
+function openAddLesson(moduleId) {
+  document.getElementById('lessonModuleId').value = moduleId;
+  document.getElementById('lessonTitle').value = '';
+  document.getElementById('lessonDesc').value = '';
+  document.getElementById('lessonContent').value = '';
+  document.getElementById('selectedFileName').style.display = 'none';
+  document.getElementById('uploadProgress').style.display = 'none';
+  document.getElementById('lessonFileUrl').value = '';
+  uploadedFileUrl = '';
+  document.getElementById('saveLessonBtn').textContent = 'Add Lesson';
+  const linkEl = document.getElementById('lessonLinkUrl'); if (linkEl) linkEl.value = '';
+  const linkSec = document.getElementById('linkSection'); if (linkSec) linkSec.style.display = 'none';
+  document.getElementById('saveLessonBtn').disabled = false;
+  openModal('addLessonModal');
+}
+function openAddAssignment(moduleId) {
+  document.getElementById('assignModuleId').value = moduleId;
+  document.getElementById('assignTitle').value = '';
+  document.getElementById('assignDesc').value = '';
+  document.getElementById('assignInstructions').value = '';
+  openModal('addAssignmentModal');
+}
+
+// ── SAVE FUNCTIONS ────────────────────────────────────────────────────
+async function saveModule() {
+  const title = document.getElementById('moduleTitle').value.trim();
+  if (!title) return showToast('Title required', 'error');
+  const unlockLocal = document.getElementById('moduleUnlockAt').value;
+  const deadlineLocal = document.getElementById('moduleDeadlineAt').value;
+  const payload = {
+    track_id: document.getElementById('moduleTrackId').value,
+    title,
+    description: document.getElementById('moduleDesc').value,
+    order_index: parseInt(document.getElementById('moduleOrder').value) || 0,
+    unlock_at: unlockLocal ? new Date(unlockLocal).toISOString() : null,
+    deadline_at: deadlineLocal ? new Date(deadlineLocal).toISOString() : null,
+  };
+  if (payload.unlock_at && payload.deadline_at && new Date(payload.deadline_at) <= new Date(payload.unlock_at)) {
+    return showToast('Deadline must be after the unlock date.', 'error');
+  }
+  const editId = document.getElementById('moduleEditId').value;
+  const r = editId
+    ? await api.patch(`/api/modules/admin/module/${editId}`, payload, true)
+    : await api.post('/api/modules/admin/module', payload, true);
+  if (r?.success) { showToast(editId ? 'Module updated!' : 'Module added!', 'success'); closeModal('addModuleModal'); selectTrack(selectedTrackId, selectedTrackName); }
+  else showToast(r?.error || 'Failed — check Render logs', 'error');
+}
+
+async function saveLesson() {
+  const btn = document.getElementById('saveLessonBtn');
+  const title = document.getElementById('lessonTitle').value.trim();
+  const type = document.getElementById('lessonType').value;
+
+  if (!title) return showToast('Title is required', 'error');
+
+  // Determine content_url based on type
+  let content_url = null;
+  if (type === 'link') {
+    const linkVal = document.getElementById('lessonLinkUrl').value.trim();
+    if (!linkVal) return showToast('Please paste a link URL', 'error');
+    // Make sure it has http
+    content_url = linkVal.startsWith('http') ? linkVal : 'https://' + linkVal;
+  } else if (type === 'article') {
+    // No URL needed — content_text is used
+  } else {
+    // File types — must have uploaded file
+    content_url = uploadedFileUrl || document.getElementById('lessonFileUrl').value || null;
+    if (!content_url) return showToast('Please upload a file first', 'error');
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="loader"></span> Saving...';
+
+  const r = await api.post('/api/modules/admin/lesson', {
+    module_id: document.getElementById('lessonModuleId').value,
+    title, type,
+    description: document.getElementById('lessonDesc').value,
+    content_url,
+    content_text: document.getElementById('lessonContent').value || null,
+    duration_minutes: parseInt(document.getElementById('lessonDuration').value) || 0,
+    points_reward: parseInt(document.getElementById('lessonPoints').value) || 10,
+    order_index: parseInt(document.getElementById('lessonOrder').value) || 0,
+    is_free_preview: document.getElementById('lessonFreePreview').checked
+  }, true);
+
+  btn.disabled = false;
+  btn.textContent = 'Add Lesson';
+
+  if (r?.success) {
+    showToast('Lesson added!', 'success');
+    closeModal('addLessonModal');
+    selectTrack(selectedTrackId, selectedTrackName);
+  } else {
+    showToast(r?.error || 'Failed to add lesson', 'error');
+  }
+}
+
+async function saveAssignment() {
+  const title = document.getElementById('assignTitle').value.trim();
+  if (!title) return showToast('Title required', 'error');
+  const r = await api.post('/api/modules/admin/assignment', {
+    module_id: document.getElementById('assignModuleId').value,
+    title,
+    description: document.getElementById('assignDesc').value,
+    instructions: document.getElementById('assignInstructions').value,
+    due_days: parseInt(document.getElementById('assignDueDays').value) || 7,
+    max_score: parseInt(document.getElementById('assignMaxScore').value) || 100
+  }, true);
+  if (r?.success) { showToast('Assignment added!', 'success'); closeModal('addAssignmentModal'); selectTrack(selectedTrackId, selectedTrackName); }
+  else showToast(r?.error || 'Failed', 'error');
+}
+
+async function deleteModule(id) {
+  confirmAction('Delete this module and all its lessons?', async () => {
+    const r = await api.delete(`/api/modules/admin/module/${id}`, true);
+    if (r?.success) { showToast('Module deleted', 'info'); selectTrack(selectedTrackId, selectedTrackName); }
+    else showToast('Failed', 'error');
+  });
+}
+
+async function deleteLesson(id) {
+  confirmAction('Delete this lesson?', async () => {
+    const r = await api.delete(`/api/modules/admin/lesson/${id}`, true);
+    if (r?.success) { showToast('Lesson deleted', 'info'); selectTrack(selectedTrackId, selectedTrackName); }
+    else showToast('Failed', 'error');
+  });
+}
+
+function openExamEditor(trackId) {
+  window.location.href = `/admin/exam?track=${trackId}&name=${encodeURIComponent(selectedTrackName)}`;
+}
+
+loadTracks();
+</script>
+</body>
+</html>

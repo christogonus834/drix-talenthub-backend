@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Mentor Login — Drix Tech Talent</title>
+<link rel="stylesheet" href="/css/style.css"/>
+<style>
+body { display:flex; align-items:center; justify-content:center; min-height:100vh; overflow:hidden; }
+.bg { position:fixed; inset:0; z-index:0; }
+.bg-grad { position:absolute; inset:0; background:radial-gradient(ellipse 80% 80% at 20% 50%, rgba(6,214,160,0.10) 0%, transparent 60%), radial-gradient(ellipse 60% 60% at 80% 20%, rgba(124,110,247,0.08) 0%, transparent 50%); }
+.bg-grid { position:absolute; inset:0; background-image:linear-gradient(rgba(124,110,247,0.04) 1px, transparent 1px),linear-gradient(90deg, rgba(124,110,247,0.04) 1px, transparent 1px); background-size:48px 48px; }
+.wrap { position:relative; z-index:2; width:100%; max-width:420px; padding:20px; }
+.logo-area { text-align:center; margin-bottom:28px; }
+.logo-mark { display:inline-flex; align-items:center; gap:10px; }
+.logo-svg { width:40px; height:40px; }
+.logo-text { font-size:1.2rem; font-weight:800; letter-spacing:-0.03em; background:var(--grad2); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+.card { background:rgba(20,20,32,0.9); backdrop-filter:blur(32px); border:1px solid var(--border2); border-radius:var(--rxl); padding:40px; box-shadow:0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(6,214,160,0.08); }
+.access-tag { display:inline-flex; align-items:center; gap:7px; padding:5px 14px; border-radius:50px; background:rgba(6,214,160,0.1); border:1px solid rgba(6,214,160,0.2); color:var(--brand-accent); font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; margin-bottom:20px; }
+.shield-dot { width:7px; height:7px; border-radius:50%; background:var(--brand-accent); animation:pulse 2s infinite; }
+.input-icon-wrap { position:relative; }
+.input-icon { position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--muted); pointer-events:none; }
+.input-icon-wrap .form-control { padding-left:40px; }
+.divider { height:1px; background:var(--border); margin:20px 0; }
+</style>
+</head>
+<body>
+<div class="bg"><div class="bg-grid"></div><div class="bg-grad"></div></div>
+
+<div class="wrap">
+  <div class="logo-area">
+    <div class="logo-mark">
+      <svg class="logo-svg" viewBox="0 0 40 40" fill="none">
+        <rect width="40" height="40" rx="12" fill="url(#lg1)"/>
+        <path d="M12 20h6M22 14v12M28 17v6" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+        <defs><linearGradient id="lg1" x1="0" y1="0" x2="40" y2="40"><stop stop-color="#7C6EF7"/><stop offset="1" stop-color="#06D6A0"/></linearGradient></defs>
+      </svg>
+      <span class="logo-text">DRIX Tech Talent</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="access-tag">
+      <div class="shield-dot"></div>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Mentor Access
+    </div>
+    <h2 style="font-size:1.5rem;font-weight:800;letter-spacing:-0.02em;margin-bottom:6px;">Mentor Portal</h2>
+    <p style="color:var(--muted);font-size:0.82rem;margin-bottom:28px;">Sign in to review your mentees' progress.</p>
+
+    <div id="alertBox" class="alert"></div>
+
+    <form id="mentorLoginForm">
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <div class="input-icon-wrap">
+          <span class="input-icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></span>
+          <input type="email" class="form-control" id="email" placeholder="you@drixtechtalent.com" required/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <div class="input-icon-wrap">
+          <span class="input-icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
+          <input type="password" class="form-control" id="password" placeholder="Enter password" required/>
+        </div>
+      </div>
+      <div style="text-align:right;margin-bottom:4px;"><a href="/forgot-password?audience=mentor" style="font-size:0.78rem;color:var(--muted);">Forgot password?</a></div>
+      <button type="submit" class="btn btn-primary w-full" id="loginBtn" style="margin-top:8px;height:46px;">
+        Sign In
+      </button>
+    </form>
+
+    <div class="divider"></div>
+    <p style="text-align:center;font-size:0.76rem;color:var(--muted2);">
+      <a href="/login" style="color:var(--muted);transition:var(--trans);" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted)'">← Fellow Login</a>
+    </p>
+  </div>
+</div>
+
+<script src="/js/app.js"></script>
+<script src="/js/mobile.js"></script>
+<script>
+if (localStorage.getItem('drix_mentor_token')) {
+  window.location.href = '/mentor/dashboard';
+}
+
+document.getElementById('mentorLoginForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const btn = document.getElementById('loginBtn');
+  const box = document.getElementById('alertBox');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="loader"></span> Signing in...';
+  box.className = 'alert';
+
+  const result = await api.post('/api/auth/mentor/login', {
+    email: document.getElementById('email').value.trim(),
+    password: document.getElementById('password').value
+  });
+
+  if (result?.success) {
+    auth.setMentorToken(result.token);
+    window.location.href = '/mentor/dashboard';
+  } else {
+    box.className = 'alert alert-error show';
+    box.textContent = result?.error || 'Invalid credentials. Please try again.';
+    btn.disabled = false;
+    btn.textContent = 'Sign In';
+  }
+});
+</script>
+</body>
+</html>

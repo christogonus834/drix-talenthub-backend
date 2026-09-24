@@ -1,0 +1,140 @@
+{
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "/pages/index.html"
+    },
+    {
+      "source": "/register",
+      "destination": "/pages/register.html"
+    },
+    {
+      "source": "/login",
+      "destination": "/pages/login.html"
+    },
+    {
+      "source": "/forgot-password",
+      "destination": "/pages/forgot-password.html"
+    },
+    {
+      "source": "/verify",
+      "destination": "/pages/verify.html"
+    },
+    {
+      "source": "/terms",
+      "destination": "/pages/terms.html"
+    },
+    {
+      "source": "/contact",
+      "destination": "/pages/contact.html"
+    },
+    {
+      "source": "/blog",
+      "destination": "/pages/blog.html"
+    },
+    {
+      "source": "/dashboard",
+      "destination": "/pages/dashboard.html"
+    },
+    {
+      "source": "/dashboard/courses",
+      "destination": "/pages/dashboard-courses.html"
+    },
+    {
+      "source": "/dashboard/community",
+      "destination": "/pages/community.html"
+    },
+    {
+      "source": "/dashboard/leaderboard",
+      "destination": "/pages/leaderboard.html"
+    },
+    {
+      "source": "/dashboard/certificates",
+      "destination": "/pages/certificates.html"
+    },
+    {
+      "source": "/dashboard/messages",
+      "destination": "/pages/dashboard-messages.html"
+    },
+    {
+      "source": "/dashboard/profile",
+      "destination": "/pages/profile.html"
+    },
+    {
+      "source": "/admin",
+      "destination": "/pages/admin-login.html"
+    },
+    {
+      "source": "/admin/login",
+      "destination": "/pages/admin-login.html"
+    },
+    {
+      "source": "/admin/dashboard",
+      "destination": "/pages/admin-dashboard.html"
+    },
+    {
+      "source": "/admin/fellows",
+      "destination": "/pages/admin-fellows.html"
+    },
+    {
+      "source": "/admin/courses",
+      "destination": "/pages/admin-courses.html"
+    },
+    {
+      "source": "/admin/cohorts",
+      "destination": "/pages/admin-cohorts.html"
+    },
+    {
+      "source": "/admin/announcements",
+      "destination": "/pages/admin-announcements.html"
+    },
+    {
+      "source": "/admin/submissions",
+      "destination": "/pages/admin-submissions.html"
+    },
+    {
+      "source": "/admin/settings",
+      "destination": "/pages/admin-settings.html"
+    },
+    {
+      "source": "/admin/certificates",
+      "destination": "/pages/admin-certificates.html"
+    },
+    {
+      "source": "/admin/messages",
+      "destination": "/pages/admin-messages.html"
+    },
+    {
+      "source": "/admin/blog",
+      "destination": "/pages/admin-blog.html"
+    },
+    {
+      "source": "/admin/exam",
+      "destination": "/pages/admin-exam.html"
+    },
+    {
+      "source": "/admin/mentors",
+      "destination": "/pages/admin-mentors.html"
+    },
+    {
+      "source": "/admin/checkins",
+      "destination": "/pages/admin-checkins.html"
+    },
+    {
+      "source": "/mentor",
+      "destination": "/pages/mentor-login.html"
+    },
+    {
+      "source": "/mentor/login",
+      "destination": "/pages/mentor-login.html"
+    },
+    {
+      "source": "/mentor/dashboard",
+      "destination": "/pages/mentor-dashboard.html"
+    },
+    {
+      "source": "/portfolio/:slug",
+      "destination": "/pages/portfolio.html?slug=:slug"
+    }
+  ]
+}

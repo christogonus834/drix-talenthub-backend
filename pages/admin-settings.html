@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Settings — Drix Admin</title>
+<link rel="stylesheet" href="/css/style.css"/>
+<style>
+.settings-card{margin-bottom:20px;}
+.settings-card h3{font-size:0.95rem;margin-bottom:4px;}
+.settings-card .sub{font-size:0.78rem;color:var(--muted);margin-bottom:18px;}
+.setting-row{display:flex;align-items:center;justify-content:space-between;padding:16px 0;border-bottom:1px solid var(--border);}
+.setting-row:last-child{border-bottom:none;}
+.si h4{font-size:0.88rem;font-weight:600;margin-bottom:3px;}
+.si p{font-size:0.76rem;color:var(--muted);margin:0;}
+.adsense-fields{margin-top:18px;padding:18px;background:var(--bg3);border-radius:var(--r);border:1px solid var(--border);display:none;}
+.adsense-fields.show{display:block;}
+.provider-tabs{display:flex;gap:10px;margin-bottom:16px;}
+.provider-tab{padding:8px 20px;border-radius:50px;border:1px solid var(--border);background:var(--bg3);color:var(--muted);font-size:0.8rem;font-weight:600;cursor:pointer;transition:all 0.2s;}
+.provider-tab.active{background:var(--grad);color:#fff;border-color:transparent;}
+.provider-fields{display:none;padding:18px;background:var(--bg3);border-radius:var(--r);border:1px solid var(--border);}
+.provider-fields.show{display:block;}
+.logo-preview{width:100px;height:60px;object-fit:contain;border-radius:8px;border:1px solid var(--border);background:var(--bg3);padding:6px;display:block;margin-top:8px;}
+.sig-preview{width:80px;height:48px;object-fit:contain;border-radius:6px;border:1px solid var(--border);background:var(--bg3);padding:4px;display:block;margin-top:6px;}
+.slide-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);}
+.slide-row:last-child{border-bottom:none;}
+.slide-num{font-size:0.75rem;font-weight:700;color:var(--accent2);width:24px;}
+.slide-url-input{flex:1;}
+.slide-preview{width:80px;height:48px;object-fit:cover;border-radius:6px;border:1px solid var(--border);flex-shrink:0;}
+.sig-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:18px;margin-bottom:14px;}
+.sig-card:last-child{margin-bottom:0;}
+</style>
+</head>
+<body>
+<aside class="sidebar">
+  <div class="sidebar-logo">DRIX Admin<span>Management Portal</span></div>
+  <nav class="sidebar-nav">
+    <div class="sidebar-section-label">Overview</div>
+    <a href="/admin/dashboard" class="sidebar-link"><span class="icon">📊</span> Dashboard</a>
+    <a href="/admin/fellows" class="sidebar-link"><span class="icon">👥</span> Fellows</a>
+    <a href="/admin/mentors" class="sidebar-link"><span class="icon">🎓</span> Mentors</a>
+    <a href="/admin/checkins" class="sidebar-link"><span class="icon">✅</span> Check-ins</a>
+    <div class="sidebar-section-label">Content</div>
+    <a href="/admin/courses" class="sidebar-link"><span class="icon">📚</span> Courses</a>
+    <a href="/admin/cohorts" class="sidebar-link"><span class="icon">🎓</span> Cohorts</a>
+    <a href="/admin/announcements" class="sidebar-link"><span class="icon">📣</span> Announcements</a>
+    <a href="/admin/submissions" class="sidebar-link"><span class="icon">✅</span> Submissions</a>
+    <div class="sidebar-section-label">System</div>
+    <a href="/admin/settings" class="sidebar-link active"><span class="icon">⚙️</span> Settings</a>
+    <a href="/admin/blog" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span>Blog</a>
+    <a href="/admin/certificates" class="sidebar-link"><span class="icon">📜</span> Certificates</a>
+  </nav>
+  <div class="sidebar-bottom"><button onclick="adminLogout()" class="btn btn-outline w-full btn-sm">← Sign Out</button></div>
+</aside>
+
+<main class="main-content">
+  <div class="flex-between mb-6">
+    <div><h1 style="font-size:1.5rem;letter-spacing:-0.02em;">Settings</h1><p style="color:var(--muted);font-size:0.82rem;">Manage platform configuration</p></div>
+    <button class="btn btn-primary" onclick="saveSettings()">💾 Save All Settings</button>
+  </div>
+  <div id="alertBox" class="alert mb-4"></div>
+
+  <!-- MONETIZATION -->
+  <div class="card settings-card">
+    <h3>💰 Monetization</h3>
+    <p class="sub">Control payment and advertising settings for the platform.</p>
+
+    <div class="setting-row">
+      <div class="si"><h4>Payment System</h4><p>Toggle to enable or disable payment requirements for registration</p></div>
+      <label class="toggle"><input type="checkbox" id="payment_enabled"/><span class="toggle-slider"></span></label>
+    </div>
+
+    <!-- Registration fee -->
+    <div style="margin-top:18px;padding:18px;background:var(--bg3);border-radius:var(--r);border:1px solid var(--border);">
+      <p style="font-size:0.78rem;font-weight:700;margin-bottom:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;">Registration Fee</p>
+      <div style="display:flex;gap:12px;align-items:flex-end;">
+        <div class="form-group" style="flex:1;margin-bottom:0;">
+          <label class="form-label">Amount</label>
+          <input type="number" class="form-control" id="registration_fee" placeholder="5000" min="0"/>
+        </div>
+        <div class="form-group" style="width:130px;margin-bottom:0;">
+          <label class="form-label">Currency</label>
+          <select class="form-control" id="payment_currency">
+            <option value="NGN">NGN ₦</option>
+            <option value="USD">USD $</option>
+            <option value="GHS">GHS ₵</option>
+          </select>
+        </div>
+      </div>
+      <p style="font-size:0.72rem;color:var(--muted);margin-top:8px;">Set to 0 for free registration. Charged only when Payment System is ON.</p>
+    </div>
+
+    <!-- Payment provider -->
+    <div style="margin-top:18px;">
+      <p style="font-size:0.78rem;font-weight:700;margin-bottom:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;">Payment Provider</p>
+      <div class="provider-tabs">
+        <button class="provider-tab" id="tab-flutterwave" onclick="switchProvider('flutterwave')">🦋 Flutterwave</button>
+        <button class="provider-tab" id="tab-paystack" onclick="switchProvider('paystack')">💳 Paystack</button>
+      </div>
+      <div class="provider-fields show" id="fields-flutterwave">
+        <div class="form-group"><label class="form-label">Flutterwave Public Key</label><input type="text" class="form-control" id="flutterwave_public_key" placeholder="FLWPUBK_TEST-xxxx-X"/></div>
+        <div class="form-group" style="margin-bottom:0;"><label class="form-label">Flutterwave Secret Key</label><input type="password" class="form-control" id="flutterwave_secret_key" placeholder="FLWSECK_TEST-xxxx-X"/></div>
+      </div>
+      <div class="provider-fields" id="fields-paystack">
+        <div class="form-group"><label class="form-label">Paystack Public Key</label><input type="text" class="form-control" id="paystack_public_key" placeholder="pk_test_xxxx"/></div>
+        <div class="form-group" style="margin-bottom:0;"><label class="form-label">Paystack Secret Key</label><input type="password" class="form-control" id="paystack_secret_key" placeholder="sk_test_xxxx"/></div>
+      </div>
+    </div>
+
+    <!-- AdSense -->
+    <div class="setting-row" style="margin-top:16px;">
+      <div class="si"><h4>Google AdSense</h4><p>Display Google ads across the platform</p></div>
+      <label class="toggle"><input type="checkbox" id="adsense_enabled" onchange="toggleAdsenseFields()"/><span class="toggle-slider"></span></label>
+    </div>
+    <div class="adsense-fields" id="adsenseFields">
+      <div class="form-group"><label class="form-label">AdSense Client ID</label><input type="text" class="form-control" id="adsense_client_id" placeholder="ca-pub-XXXXXXXXXXXXXXXX"/></div>
+      <div class="form-group" style="margin-bottom:0;"><label class="form-label">AdSense Slot ID</label><input type="text" class="form-control" id="adsense_slot_id" placeholder="1234567890"/></div>
+    </div>
+
+    <!-- Monetag -->
+    <div class="setting-row" style="margin-top:16px;">
+      <div class="si"><h4>Monetag</h4><p>Ad network on the public website (homepage &amp; blog only — never the fellow dashboard)</p></div>
+      <label class="toggle"><input type="checkbox" id="monetag_enabled" onchange="toggleMonetagFields()"/><span class="toggle-slider"></span></label>
+    </div>
+    <div class="adsense-fields" id="monetagFields">
+      <div class="form-group">
+        <label class="form-label">Ad tag / zone script</label>
+        <textarea class="form-control" id="monetag_zone_script" rows="3" placeholder="Paste the exact <script> snippet from your Monetag zone here"></textarea>
+        <p style="font-size:0.72rem;color:var(--muted);margin-top:6px;">From your Monetag dashboard → Ad zone → Copy code. Paste it exactly as given.</p>
+      </div>
+      <div class="setting-row" style="padding:0;margin-bottom:0;">
+        <div class="si"><h4 style="font-size:0.82rem;">Weekends only</h4><p style="font-size:0.72rem;">Only show these ads on Saturday and Sunday (visitor's local time)</p></div>
+        <label class="toggle"><input type="checkbox" id="monetag_weekends_only"/><span class="toggle-slider"></span></label>
+      </div>
+    </div>
+  </div>
+
+  <!-- REGISTRATION -->
+  <div class="card settings-card">
+    <h3>📝 Registration</h3>
+    <p class="sub">Control who can register on the platform.</p>
+    <div class="setting-row">
+      <div class="si"><h4>Open Registration</h4><p>Allow new fellows to submit applications</p></div>
+      <label class="toggle"><input type="checkbox" id="registration_open"/><span class="toggle-slider"></span></label>
+    </div>
+  </div>
+
+  <!-- SITE INFO + LOGOS -->
+  <div class="card settings-card">
+    <h3>🌐 Site Information & Branding</h3>
+    <p class="sub">Platform name, logo, and favicon.</p>
+    <div class="form-group"><label class="form-label">Site Name</label><input type="text" class="form-control" id="site_name" placeholder="Drix Tech Talent Programme"/></div>
+    <div class="form-group">
+      <label class="form-label">Site Logo URL <span style="color:var(--muted);font-weight:400;">(upload to <a href="https://imgbb.com" target="_blank" style="color:var(--accent2);">imgbb.com</a> then paste link)</span></label>
+      <input type="text" class="form-control" id="site_logo" placeholder="https://..." oninput="previewImg('site_logo','logoPreview')"/>
+      <img id="logoPreview" class="logo-preview" src="" alt="Logo preview" style="display:none;"/>
+    </div>
+    <div class="form-group" style="margin-bottom:0;">
+      <label class="form-label">Favicon URL</label>
+      <input type="text" class="form-control" id="site_favicon" placeholder="https://..."/>
+    </div>
+  </div>
+
+  <!-- CERTIFICATE SIGNATURES -->
+  <div class="card settings-card">
+    <h3>✍️ Certificate Signatures</h3>
+    <p class="sub">Names and logos shown at the bottom of issued certificates. Editable for future investors/partners.</p>
+
+    <div class="sig-card">
+      <p style="font-size:0.78rem;font-weight:700;color:var(--accent2);margin-bottom:12px;text-transform:uppercase;letter-spacing:0.06em;">Signature 1</p>
+      <div class="form-group"><label class="form-label">Organisation Name</label><input type="text" class="form-control" id="sig1_name" placeholder="Drix Tech Foundation Management"/></div>
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label">Signature Logo URL <span style="color:var(--muted);font-weight:400;">(optional)</span></label>
+        <input type="text" class="form-control" id="sig1_logo" placeholder="https://..." oninput="previewImg('sig1_logo','sig1Preview')"/>
+        <img id="sig1Preview" class="sig-preview" src="" alt="" style="display:none;"/>
+      </div>
+    </div>
+
+    <div class="sig-card">
+      <p style="font-size:0.78rem;font-weight:700;color:var(--accent2);margin-bottom:12px;text-transform:uppercase;letter-spacing:0.06em;">Signature 2</p>
+      <div class="form-group"><label class="form-label">Organisation Name</label><input type="text" class="form-control" id="sig2_name" placeholder="ePayBillz Management"/></div>
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label">Signature Logo URL <span style="color:var(--muted);font-weight:400;">(optional)</span></label>
+        <input type="text" class="form-control" id="sig2_logo" placeholder="https://..." oninput="previewImg('sig2_logo','sig2Preview')"/>
+        <img id="sig2Preview" class="sig-preview" src="" alt="" style="display:none;"/>
+      </div>
+    </div>
+  </div>
+
+  <!-- HERO SLIDES -->
+  <div class="card settings-card">
+    <h3>🖼️ Homepage Hero Slides</h3>
+    <p class="sub">Paste any image URL to change the homepage background slides.</p>
+    <div id="slideRows">
+      <div class="slide-row"><span class="slide-num">1</span><input type="text" class="form-control slide-url-input" id="slide_1" placeholder="https://images.unsplash.com/..." oninput="previewSlide(1)"/><img id="slidePreview1" class="slide-preview" src="" style="display:none;"/></div>
+      <div class="slide-row"><span class="slide-num">2</span><input type="text" class="form-control slide-url-input" id="slide_2" placeholder="https://images.unsplash.com/..." oninput="previewSlide(2)"/><img id="slidePreview2" class="slide-preview" src="" style="display:none;"/></div>
+      <div class="slide-row"><span class="slide-num">3</span><input type="text" class="form-control slide-url-input" id="slide_3" placeholder="https://images.unsplash.com/..." oninput="previewSlide(3)"/><img id="slidePreview3" class="slide-preview" src="" style="display:none;"/></div>
+      <div class="slide-row"><span class="slide-num">4</span><input type="text" class="form-control slide-url-input" id="slide_4" placeholder="https://images.unsplash.com/..." oninput="previewSlide(4)"/><img id="slidePreview4" class="slide-preview" src="" style="display:none;"/></div>
+    </div>
+  </div>
+
+  <!-- DANGER ZONE -->
+  <div class="card" style="border-color:rgba(244,63,94,0.25);">
+    <h3 style="color:var(--danger);font-size:0.95rem;margin-bottom:4px;">⚠️ Danger Zone</h3>
+    <p style="font-size:0.78rem;color:var(--muted);margin-bottom:18px;">Irreversible actions. Proceed with extreme caution.</p>
+    <div class="setting-row">
+      <div class="si"><h4>Reset All Fellow Points</h4><p>Set all fellow points back to zero</p></div>
+      <button class="btn btn-danger btn-sm" onclick="confirmAction('This will reset ALL fellow points to 0. Are you sure?', resetPoints)">Reset Points</button>
+    </div>
+  </div>
+</main>
+
+<script src="/js/app.js"></script>
+<script src="/js/mobile.js"></script>
+<script>
+// ── ADMIN TOKEN GUARD ─────────────────────────────────────────────
+if (!localStorage.getItem('drix_admin_token')) {
+  window.location.href = '/admin/login';
+}
+
+</script>
+<script>
+let currentProvider = 'flutterwave';
+
+function switchProvider(p) {
+  currentProvider = p;
+  document.querySelectorAll('.provider-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.provider-fields').forEach(f => f.classList.remove('show'));
+  document.getElementById(`tab-${p}`).classList.add('active');
+  document.getElementById(`fields-${p}`).classList.add('show');
+}
+
+function toggleAdsenseFields() {
+  document.getElementById('adsenseFields').classList.toggle('show', document.getElementById('adsense_enabled').checked);
+}
+
+function toggleMonetagFields() {
+  document.getElementById('monetagFields').classList.toggle('show', document.getElementById('monetag_enabled').checked);
+}
+
+function previewImg(inputId, previewId) {
+  const url = document.getElementById(inputId).value;
+  const img = document.getElementById(previewId);
+  if (url) { img.src = url; img.style.display = 'block'; }
+  else { img.style.display = 'none'; }
+}
+
+function previewSlide(n) {
+  const url = document.getElementById(`slide_${n}`).value;
+  const img = document.getElementById(`slidePreview${n}`);
+  if (url) { img.src = url; img.style.display = 'block'; }
+  else { img.style.display = 'none'; }
+}
+
+async function loadSettings() {
+  const s = await api.get('/api/admin/settings', true);
+  if (!s) { window.location.href = '/admin/login'; return; }
+
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
+  const chk = (id, val) => { const el = document.getElementById(id); if (el) el.checked = val; };
+
+  chk('payment_enabled', s.payment_enabled === 'true');
+  set('registration_fee', s.registration_fee || '0');
+  document.getElementById('payment_currency').value = s.payment_currency || 'NGN';
+  set('flutterwave_public_key', s.flutterwave_public_key);
+  set('flutterwave_secret_key', s.flutterwave_secret_key);
+  set('paystack_public_key', s.paystack_public_key);
+  set('paystack_secret_key', s.paystack_secret_key);
+  chk('adsense_enabled', s.adsense_enabled === 'true');
+  set('adsense_client_id', s.adsense_client_id);
+  set('adsense_slot_id', s.adsense_slot_id);
+  chk('monetag_enabled', s.monetag_enabled === 'true');
+  set('monetag_zone_script', s.monetag_zone_script);
+  chk('monetag_weekends_only', s.monetag_weekends_only !== 'false');
+  chk('registration_open', s.registration_open !== 'false');
+  set('site_name', s.site_name);
+  set('site_logo', s.site_logo);
+  set('site_favicon', s.site_favicon);
+  set('sig1_name', s.sig1_name || 'Drix Tech Foundation Management');
+  set('sig1_logo', s.sig1_logo);
+  set('sig2_name', s.sig2_name || 'ePayBillz Management');
+  set('sig2_logo', s.sig2_logo);
+  set('slide_1', s.slide_1); set('slide_2', s.slide_2);
+  set('slide_3', s.slide_3); set('slide_4', s.slide_4);
+
+  switchProvider(s.payment_provider || 'flutterwave');
+  toggleAdsenseFields();
+  toggleMonetagFields();
+  previewImg('site_logo', 'logoPreview');
+  previewImg('sig1_logo', 'sig1Preview');
+  previewImg('sig2_logo', 'sig2Preview');
+  [1,2,3,4].forEach(n => previewSlide(n));
+}
+
+function getVal(id) { return document.getElementById(id)?.value || ''; }
+function getChk(id) { return document.getElementById(id)?.checked ? 'true' : 'false'; }
+
+async function saveSettings() {
+  const btn = event.target;
+  btn.disabled = true; btn.textContent = 'Saving...';
+
+  const r = await api.patch('/api/admin/settings', {
+    payment_enabled: getChk('payment_enabled'),
+    payment_provider: currentProvider,
+    registration_fee: getVal('registration_fee'),
+    payment_currency: getVal('payment_currency'),
+    flutterwave_public_key: getVal('flutterwave_public_key'),
+    flutterwave_secret_key: getVal('flutterwave_secret_key'),
+    paystack_public_key: getVal('paystack_public_key'),
+    paystack_secret_key: getVal('paystack_secret_key'),
+    adsense_enabled: getChk('adsense_enabled'),
+    adsense_client_id: getVal('adsense_client_id'),
+    adsense_slot_id: getVal('adsense_slot_id'),
+    monetag_enabled: getChk('monetag_enabled'),
+    monetag_zone_script: getVal('monetag_zone_script'),
+    monetag_weekends_only: getChk('monetag_weekends_only'),
+    registration_open: getChk('registration_open'),
+    site_name: getVal('site_name'),
+    site_logo: getVal('site_logo'),
+    site_favicon: getVal('site_favicon'),
+    sig1_name: getVal('sig1_name'),
+    sig1_logo: getVal('sig1_logo'),
+    sig2_name: getVal('sig2_name'),
+    sig2_logo: getVal('sig2_logo'),
+    slide_1: getVal('slide_1'),
+    slide_2: getVal('slide_2'),
+    slide_3: getVal('slide_3'),
+    slide_4: getVal('slide_4'),
+  }, true);
+
+  btn.disabled = false; btn.textContent = '💾 Save All Settings';
+  const box = document.getElementById('alertBox');
+  if (r?.success) {
+    box.className = 'alert alert-success show';
+    box.textContent = ' Settings saved successfully!';
+    setTimeout(() => box.classList.remove('show'), 3000);
+  } else {
+    box.className = 'alert alert-error show';
+    box.textContent = ' Failed to save settings.';
+  }
+}
+
+async function resetPoints() { showToast('Feature coming soon.', 'info'); }
+loadSettings();
+</script>
+</body>
+</html>

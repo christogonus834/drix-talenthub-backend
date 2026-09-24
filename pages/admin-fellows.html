@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Fellows — Drix Admin</title>
+<link rel="stylesheet" href="/css/style.css"/>
+<style>
+.fellow-av{width:34px;height:34px;border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.82rem;flex-shrink:0;overflow:hidden;}
+.fellow-av img{width:100%;height:100%;object-fit:cover;}
+.filter-bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:18px;}
+.fsel{background:var(--bg3);border:1.5px solid var(--border2);color:var(--text);padding:9px 14px;border-radius:var(--r);font-family:var(--font);font-size:0.82rem;outline:none;}
+.fsel:focus{border-color:var(--accent);}
+.pag{display:flex;gap:7px;justify-content:center;margin-top:18px;}
+.pbtn{padding:7px 13px;border-radius:var(--r);background:var(--surface2);border:1px solid var(--border);color:var(--text);font-size:0.82rem;cursor:pointer;transition:var(--trans);font-family:var(--font);}
+.pbtn:hover,.pbtn.active{background:var(--accent);border-color:var(--accent);color:white;}
+</style>
+</head>
+<body>
+<aside class="sidebar">
+  <div class="sidebar-logo">DRIX Admin<span>Management Portal</span></div>
+  <nav class="sidebar-nav">
+    <div class="sidebar-section-label">Overview</div>
+    <a href="/admin/dashboard" class="sidebar-link"><span class="icon">📊</span> Dashboard</a>
+    <a href="/admin/fellows" class="sidebar-link active"><span class="icon">👥</span> Fellows</a>
+    <a href="/admin/mentors" class="sidebar-link"><span class="icon">🎓</span> Mentors</a>
+    <a href="/admin/checkins" class="sidebar-link"><span class="icon">✅</span> Check-ins</a>
+    <div class="sidebar-section-label">Content</div>
+    <a href="/admin/courses" class="sidebar-link"><span class="icon">📚</span> Courses</a>
+    <a href="/admin/cohorts" class="sidebar-link"><span class="icon">🎓</span> Cohorts</a>
+    <a href="/admin/announcements" class="sidebar-link"><span class="icon">📣</span> Announcements</a>
+    <a href="/admin/submissions" class="sidebar-link"><span class="icon">✅</span> Submissions</a>
+    <div class="sidebar-section-label">System</div>
+    <a href="/admin/settings" class="sidebar-link"><span class="icon">⚙️</span> Settings</a>
+  </nav>
+  <div class="sidebar-bottom"><button onclick="adminLogout()" class="btn btn-outline w-full btn-sm">← Sign Out</button></div>
+</aside>
+
+<main class="main-content">
+  <div class="flex-between mb-6">
+    <div><h1 style="font-size:1.5rem;letter-spacing:-0.02em;">Fellows</h1><p style="color:var(--muted);font-size:0.82rem;">Manage all registered fellows</p></div>
+    <button class="btn btn-primary btn-sm" onclick="bulkApprove()">✅ Bulk Approve Selected</button>
+  </div>
+
+  <div class="card">
+    <div class="filter-bar">
+      <input type="text" class="form-control" id="searchInput" placeholder="🔍 Search by name..." oninput="loadFellows(1)" style="max-width:220px;"/>
+      <select class="fsel" id="statusFilter" onchange="loadFellows(1)">
+        <option value="">All Statuses</option><option value="pending">Pending</option>
+        <option value="approved">Approved</option><option value="rejected">Rejected</option><option value="suspended">Suspended</option>
+      </select>
+      <select class="fsel" id="trackFilter" onchange="loadFellows(1)"><option value="">All Tracks</option></select>
+      <span id="totalCount" style="color:var(--muted);font-size:0.78rem;margin-left:auto;"></span>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th><input type="checkbox" id="selAll" onchange="toggleAll()" style="accent-color:var(--accent);"/></th>
+          <th>Fellow</th><th>Fellow ID</th><th>Track</th><th>State</th><th>ePayBillz ID</th><th>Status</th><th>Date</th><th>Actions</th>
+        </tr></thead>
+        <tbody id="fellowsTable"><tr><td colspan="9" style="text-align:center;padding:40px;"><span class="loader"></span></td></tr></tbody>
+      </table>
+    </div>
+    <div class="pag" id="pagination"></div>
+  </div>
+</main>
+
+<!-- FELLOW DETAIL MODAL -->
+<div class="modal-overlay" id="fellowModal">
+  <div class="modal" style="max-width:620px;">
+    <div class="modal-header"><div class="modal-title">Fellow Details</div><button class="modal-close" onclick="closeModal('fellowModal')">✕</button></div>
+    <div id="fellowModalBody"></div>
+  </div>
+</div>
+
+<!-- ISSUE CERT MODAL -->
+<div class="modal-overlay" id="certModal">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">🏆 Issue Certificate</div><button class="modal-close" onclick="closeModal('certModal')">✕</button></div>
+    <p style="color:var(--muted);font-size:0.86rem;margin-bottom:20px;">Manually issue a certificate. A unique DRIX-CERT ID will be generated.</p>
+    <div class="form-group"><label class="form-label">Certificate Title</label><input type="text" class="form-control" id="certTitle" placeholder="Certificate of Completion"/></div>
+    <div class="form-group"><label class="form-label">Grade / Distinction (optional)</label><input type="text" class="form-control" id="certGrade" placeholder="e.g. Distinction, Merit, Pass"/></div>
+    <div class="form-group">
+      <label class="form-label">Include Fellow Photo on Certificate</label>
+      <select class="form-control" id="certIncludePhoto"><option value="yes">Yes — include profile photo</option><option value="no">No — text only</option></select>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:8px;">
+      <button class="btn btn-primary" onclick="issueCert()">Issue Certificate</button>
+      <button class="btn btn-outline" onclick="closeModal('certModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/app.js"></script>
+<script src="/js/mobile.js"></script>
+<script>
+// ── ADMIN TOKEN GUARD ─────────────────────────────────────────────
+if (!localStorage.getItem('drix_admin_token')) {
+  window.location.href = '/admin/login';
+}
+
+</script>
+<script>
+let curPage = 1, selIds = [], selFellowId = null, selFellowData = null;
+
+async function loadTracks() {
+  const tracks = await api.get('/api/admin/tracks', true);
+  const sel = document.getElementById('trackFilter');
+  tracks?.forEach(t => { const o = document.createElement('option'); o.value = t.id; o.textContent = t.name; sel.appendChild(o); });
+}
+
+async function loadFellows(page = 1) {
+  curPage = page;
+  const search = document.getElementById('searchInput').value;
+  const status = document.getElementById('statusFilter').value;
+  const track = document.getElementById('trackFilter').value;
+  const p = new URLSearchParams({ page, limit: 15 });
+  if (search) p.set('search', search);
+  if (status) p.set('status', status);
+  if (track) p.set('track_id', track);
+  const res = await api.get(`/api/admin/fellows?${p}`, true);
+  if (!res) return;
+  const { data, count } = res;
+  document.getElementById('totalCount').textContent = `${count || 0} fellows`;
+  const tb = document.getElementById('fellowsTable');
+  if (!data?.length) { tb.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:40px;">No fellows found</td></tr>'; document.getElementById('pagination').innerHTML = ''; return; }
+  tb.innerHTML = data.map(f => `
+    <tr>
+      <td><input type="checkbox" class="fchk" value="${f.id}" style="accent-color:var(--accent);" onchange="updateSel()"/></td>
+      <td><div style="display:flex;align-items:center;gap:9px;">
+        <div class="fellow-av">${f.profile_photo ? `<img src="${f.profile_photo}"/>` : (f.full_name?.charAt(0) || '?')}</div>
+        <div><div style="font-weight:600;font-size:0.84rem;">${f.full_name}</div><div style="font-size:0.72rem;color:var(--muted);">${f.email}</div></div>
+      </div></td>
+      <td style="font-family:monospace;font-size:0.78rem;color:var(--accent2);">${f.fellow_id || '—'}</td>
+      <td style="font-size:0.82rem;">${f.tracks?.name || '—'}</td>
+      <td style="font-size:0.82rem;">${f.state || '—'}</td>
+      <td style="font-size:0.76rem;color:var(--muted);">${f.epayybillz_user_id || '—'}</td>
+      <td><span class="badge badge-${f.status}">${f.status}</span></td>
+      <td style="font-size:0.78rem;color:var(--muted);">${formatDate(f.created_at)}</td>
+      <td><div style="display:flex;gap:5px;">
+        <button class="btn btn-outline btn-sm" onclick="viewFellow('${f.id}')">View</button>
+        ${f.status === 'pending' ? `<button class="btn btn-sm" style="background:rgba(6,214,160,0.15);color:var(--success);border:1px solid rgba(6,214,160,0.25);padding:7px 10px;border-radius:var(--r);cursor:pointer;font-family:var(--font);font-size:0.76rem;" onclick="quickStatus('${f.id}','approved')">✓</button><button class="btn btn-sm" style="background:rgba(244,63,94,0.12);color:var(--danger);border:1px solid rgba(244,63,94,0.2);padding:7px 10px;border-radius:var(--r);cursor:pointer;font-family:var(--font);font-size:0.76rem;" onclick="quickStatus('${f.id}','rejected')">✗</button>` : ''}
+      </div></td>
+    </tr>`).join('');
+  const totalPages = Math.ceil((count || 0) / 15);
+  document.getElementById('pagination').innerHTML = Array.from({length: Math.min(totalPages, 10)}, (_, i) =>
+    `<button class="pbtn ${i + 1 === page ? 'active' : ''}" onclick="loadFellows(${i + 1})">${i + 1}</button>`).join('');
+}
+
+function toggleAll() { const c = document.getElementById('selAll').checked; document.querySelectorAll('.fchk').forEach(x => x.checked = c); updateSel(); }
+function updateSel() { selIds = Array.from(document.querySelectorAll('.fchk:checked')).map(x => x.value); }
+
+async function quickStatus(id, status) {
+  const r = await api.patch(`/api/admin/fellows/${id}/status`, { status }, true);
+  if (r.success) { showToast(`Fellow ${status}!`, 'success'); loadFellows(curPage); }
+  else showToast('Failed.', 'error');
+}
+
+async function bulkApprove() {
+  if (!selIds.length) { showToast('Select fellows first.', 'error'); return; }
+  confirmAction(`Approve ${selIds.length} fellows?`, async () => {
+    const r = await api.post('/api/admin/fellows/bulk-approve', { ids: selIds }, true);
+    if (r.success) { showToast('Fellows approved!', 'success'); loadFellows(curPage); }
+    else showToast('Failed.', 'error');
+  });
+}
+
+async function viewFellow(id) {
+  selFellowId = id;
+  const f = await api.get(`/api/admin/fellows/${id}`, true);
+  selFellowData = f;
+  document.getElementById('fellowModalBody').innerHTML = `
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:22px;padding-bottom:18px;border-bottom:1px solid var(--border);">
+      <div style="width:60px;height:60px;border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:800;overflow:hidden;flex-shrink:0;">
+        ${f.profile_photo ? `<img src="${f.profile_photo}" style="width:100%;height:100%;object-fit:cover;"/>` : (f.full_name?.charAt(0) || '?')}
+      </div>
+      <div>
+        <div style="font-weight:700;font-size:1.05rem;">${f.full_name}</div>
+        <div style="font-family:monospace;font-size:0.8rem;color:var(--accent2);">${f.fellow_id || '—'}</div>
+      </div>
+      <span class="badge badge-${f.status}" style="margin-left:auto;">${f.status}</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;">
+      ${[['Email',f.email],['Phone',f.phone||'—'],['Track',f.tracks?.name||'—'],['State',f.state||'—'],['Gender',f.gender||'—'],['DOB',formatDate(f.date_of_birth)],['ePayBillz ID',f.epayybillz_user_id],['Points',`🪙 ${f.points||0}`],['Cohort',f.cohorts?.name||'—'],['Registered',formatDate(f.created_at)]].map(([l,v])=>`
+        <div style="background:var(--bg3);border-radius:var(--r);padding:12px 14px;">
+          <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted2);margin-bottom:3px;">${l}</div>
+          <div style="font-size:0.86rem;font-weight:500;">${v}</div>
+        </div>`).join('')}
+    </div>
+    <div style="display:flex;gap:9px;flex-wrap:wrap;padding-top:16px;border-top:1px solid var(--border);">
+      ${f.status !== 'approved' ? `<button class="btn btn-success btn-sm" onclick="quickStatus('${f.id}','approved');closeModal('fellowModal')">✅ Approve</button>` : ''}
+      ${f.status !== 'rejected' ? `<button class="btn btn-danger btn-sm" onclick="quickStatus('${f.id}','rejected');closeModal('fellowModal')">❌ Reject</button>` : ''}
+      ${f.status !== 'suspended' ? `<button class="btn btn-outline btn-sm" onclick="quickStatus('${f.id}','suspended');closeModal('fellowModal')">⛔ Suspend</button>` : ''}
+      <button class="btn btn-primary btn-sm" onclick="closeModal('fellowModal');openModal('certModal')">🏆 Issue Certificate</button>
+      <button class="btn btn-sm" style="background:rgba(244,63,94,0.12);color:var(--danger);border:1px solid rgba(244,63,94,0.2);border-radius:50px;padding:8px 16px;font-family:var(--font);font-size:0.78rem;font-weight:600;cursor:pointer;" onclick="deleteFellow('${f.id}')">🗑️ Delete</button>
+    </div>`;
+  openModal('fellowModal');
+}
+
+async function deleteFellow(id) {
+  confirmAction('Permanently delete this fellow?', async () => {
+    const r = await api.delete(`/api/admin/fellows/${id}`, true);
+    if (r.success) { showToast('Deleted.', 'success'); closeModal('fellowModal'); loadFellows(curPage); }
+    else showToast('Failed.', 'error');
+  });
+}
+
+async function issueCert() {
+  const title = document.getElementById('certTitle').value || 'Certificate of Completion';
+  const grade = document.getElementById('certGrade').value || 'Pass';
+  const includePhoto = document.getElementById('certIncludePhoto').value === 'yes';
+  const r = await api.post('/api/admin/certificates/issue', {
+    fellow_id: selFellowId, title, grade,
+    fellow_photo: includePhoto && selFellowData?.profile_photo ? selFellowData.profile_photo : null
+  }, true);
+  if (r.success) { showToast(`Certificate issued! ID: ${r.certificate_id}`, 'success'); closeModal('certModal'); }
+  else showToast(r.error || 'Failed.', 'error');
+}
+
+loadTracks();
+loadFellows(1);
+</script>
+</body>
+</html>

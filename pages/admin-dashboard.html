@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Dashboard — Drix Admin</title>
+<link rel="stylesheet" href="/css/style.css"/>
+</head>
+<body>
+<div class="layout">
+
+<aside class="sidebar">
+  <div class="sidebar-logo">DRIX Admin<span>Management Portal</span></div>
+  <nav class="sidebar-nav">
+    <div class="sidebar-section-label">Overview</div>
+    <a href="/admin/dashboard" class="sidebar-link active">
+      <span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>
+      Dashboard
+    </a>
+    <a href="/admin/fellows" class="sidebar-link">
+      <span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+      Fellows
+      <span id="pendingBadge" style="display:none;margin-left:auto;background:var(--brand-danger);color:white;border-radius:50px;padding:1px 7px;font-size:0.62rem;"></span>
+    </a>
+    <a href="/admin/mentors" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>Mentors</a>
+    <a href="/admin/checkins" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>Check-ins</a>
+    <div class="sidebar-section-label">Content</div>
+    <a href="/admin/courses" class="sidebar-link">
+      <span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span>
+      Tracks & Modules
+    </a>
+    <a href="/admin/cohorts" class="sidebar-link">
+      <span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>
+      Cohorts
+    </a>
+    <a href="/admin/announcements" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg></span>Announcements</a>
+    <a href="/admin/submissions" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>Submissions</a>
+    <a href="/admin/blog" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span>Blog</a>
+    <a href="/admin/certificates" class="sidebar-link">
+      <span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg></span>
+      Certificates
+    </a>
+    <a href="/admin/messages" class="sidebar-link">
+      <span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></span>
+      Messages
+      <span id="msgBadge" style="display:none;margin-left:auto;background:var(--brand-primary);color:white;border-radius:50px;padding:1px 7px;font-size:0.62rem;"></span>
+    </a>
+    <div class="sidebar-section-label">System</div>
+    <a href="/admin/settings" class="sidebar-link">
+      <span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M19.07 19.07l-1.41-1.41M4.93 19.07l1.41-1.41M12 2v2M12 20v2M2 12h2M20 12h2"/></svg></span>
+      Settings
+    </a>
+  </nav>
+  <div class="sidebar-bottom">
+    <button onclick="adminLogout()" class="btn btn-outline w-full btn-sm" style="gap:8px;">
+      <span class="icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></span>
+      Sign Out
+    </button>
+  </div>
+</aside>
+
+<main class="main-content">
+  <div class="flex-between mb-6">
+    <div>
+      <h1 style="font-size:1.6rem;font-weight:800;letter-spacing:-0.03em;">Dashboard</h1>
+      <p style="color:var(--muted);font-size:0.82rem;margin-top:3px;">Platform overview and management</p>
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-outline btn-sm" onclick="window.location.reload()">Refresh</button>
+      <a href="/admin/fellows" class="btn btn-primary btn-sm">
+        <span class="icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></span>
+        Manage Fellows
+      </a>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-grid" id="statsGrid">
+    <div class="stat-card"><div class="stat-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--brand-primary)" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div><div class="stat-value" id="statTotal">—</div><div class="stat-label">Total Fellows</div></div>
+    <div class="stat-card"><div class="stat-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--brand-accent)" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></div><div class="stat-value" id="statApproved">—</div><div class="stat-label">Approved</div></div>
+    <div class="stat-card"><div class="stat-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--brand-warning)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div><div class="stat-value" id="statPending">—</div><div class="stat-label">Pending Approval</div></div>
+    <div class="stat-card"><div class="stat-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--brand-secondary)" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div><div class="stat-value" id="statTracks">—</div><div class="stat-label">Active Tracks</div></div>
+  </div>
+
+  <!-- ANALYTICS -->
+  <div class="grid-3 mt-6" style="align-items:start;">
+    <!-- Registrations trend -->
+    <div class="card" style="grid-column:span 1;">
+      <h3 style="font-size:0.86rem;font-weight:700;margin-bottom:4px;">Registrations</h3>
+      <p style="font-size:0.72rem;color:var(--muted);margin-bottom:16px;">Last 14 days</p>
+      <div id="regChart" style="display:flex;align-items:flex-end;gap:3px;height:90px;"></div>
+      <div class="flex-between" style="margin-top:8px;font-size:0.68rem;color:var(--muted2);">
+        <span id="regFirstDay"></span><span id="regLastDay"></span>
+      </div>
+      <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:0.76rem;">
+        <span style="color:var(--muted);">Approved</span><span style="font-weight:700;" id="regApproved">—</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:0.76rem;margin-top:4px;">
+        <span style="color:var(--muted);">Pending</span><span style="font-weight:700;color:var(--brand-warning);" id="regPending">—</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:0.76rem;margin-top:4px;">
+        <span style="color:var(--muted);">Rejected</span><span style="font-weight:700;color:var(--brand-danger);" id="regRejected">—</span>
+      </div>
+    </div>
+
+    <!-- Payment status -->
+    <div class="card">
+      <h3 style="font-size:0.86rem;font-weight:700;margin-bottom:4px;">Payment Status</h3>
+      <p style="font-size:0.72rem;color:var(--muted);margin-bottom:16px;" id="paymentSub">Loading…</p>
+      <div id="paymentDonut"></div>
+      <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:0.76rem;">
+        <span style="color:var(--muted);">Revenue collected</span><span style="font-weight:700;" id="revenueOut">—</span>
+      </div>
+    </div>
+
+    <!-- Ads quick toggle -->
+    <div class="card">
+      <h3 style="font-size:0.86rem;font-weight:700;margin-bottom:4px;">Ads</h3>
+      <p style="font-size:0.72rem;color:var(--muted);margin-bottom:16px;">Homepage &amp; blog only — never the fellow dashboard</p>
+      <div class="flex-between" style="padding:10px 0;border-bottom:1px solid var(--border);">
+        <span style="font-size:0.82rem;font-weight:600;">Google AdSense</span>
+        <label class="toggle"><input type="checkbox" id="quickAdsense" onchange="quickToggleAd('adsense_enabled', this.checked)"/><span class="toggle-slider"></span></label>
+      </div>
+      <div class="flex-between" style="padding:10px 0;">
+        <div><span style="font-size:0.82rem;font-weight:600;">Monetag</span><div style="font-size:0.7rem;color:var(--muted);">Weekends-only by default</div></div>
+        <label class="toggle"><input type="checkbox" id="quickMonetag" onchange="quickToggleAd('monetag_enabled', this.checked)"/><span class="toggle-slider"></span></label>
+      </div>
+      <a href="/admin/settings" style="font-size:0.74rem;color:var(--brand-accent);display:inline-block;margin-top:10px;">Configure ad scripts →</a>
+    </div>
+  </div>
+
+  <div class="grid-2 mt-6">
+    <!-- Tracks breakdown -->
+    <div class="card">
+      <h3 style="font-size:0.86rem;font-weight:700;margin-bottom:4px;">Fellows by Track</h3>
+      <p style="font-size:0.72rem;color:var(--muted);margin-bottom:16px;">Distribution across tracks</p>
+      <div id="trackDonut"></div>
+    </div>
+
+    <!-- States breakdown -->
+    <div class="card">
+      <h3 style="font-size:0.86rem;font-weight:700;margin-bottom:4px;">Fellows by State</h3>
+      <p style="font-size:0.72rem;color:var(--muted);margin-bottom:16px;">Top 10 states, rest grouped as Other</p>
+      <div id="stateDonut"></div>
+    </div>
+  </div>
+
+  <div class="grid-2 mt-6">
+    <!-- PENDING FELLOWS -->
+    <div class="card">
+      <div class="flex-between mb-4">
+        <h3 style="font-size:0.9rem;font-weight:700;">Pending Approvals</h3>
+        <a href="/admin/fellows" style="font-size:0.76rem;color:var(--brand-secondary);">View all →</a>
+      </div>
+      <div id="pendingList"><div class="flex-center" style="padding:30px;"><span class="loader"></span></div></div>
+    </div>
+
+    <!-- RECENT FELLOWS -->
+    <div class="card">
+      <div class="flex-between mb-4">
+        <h3 style="font-size:0.9rem;font-weight:700;">Recent Registrations</h3>
+        <a href="/admin/fellows" style="font-size:0.76rem;color:var(--brand-secondary);">View all →</a>
+      </div>
+      <div id="recentList"><div class="flex-center" style="padding:30px;"><span class="loader"></span></div></div>
+    </div>
+  </div>
+
+  <!-- QUICK ACTIONS -->
+  <div class="card mt-6">
+    <h3 style="font-size:0.9rem;font-weight:700;margin-bottom:18px;">Quick Actions</h3>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <a href="/admin/fellows?filter=pending" class="btn btn-outline">Review Applications</a>
+      <a href="/admin/courses" class="btn btn-outline">Manage Tracks</a>
+      <a href="/admin/certificates" class="btn btn-outline">Certificate Requests</a>
+      <a href="/admin/messages" class="btn btn-outline">View Messages</a>
+      <a href="/admin/settings" class="btn btn-outline">Settings</a>
+    </div>
+  </div>
+</main>
+</div>
+
+<script src="/js/app.js"></script>
+<script src="/js/mobile.js"></script>
+<script>
+// Guard
+if (!auth.getAdminToken()) window.location.href = '/admin/login';
+
+async function loadDashboard() {
+  const stats = await api.get('/api/admin/stats', true);
+  if (!stats) return;
+
+  document.getElementById('statTotal').textContent = stats.total_fellows || 0;
+  document.getElementById('statApproved').textContent = stats.approved_fellows || 0;
+  document.getElementById('statPending').textContent = stats.pending_fellows || 0;
+  document.getElementById('statTracks').textContent = stats.active_tracks || 0;
+
+  if (stats.pending_fellows > 0) {
+    const b = document.getElementById('pendingBadge');
+    b.style.display = 'inline'; b.textContent = stats.pending_fellows;
+  }
+
+  // Registrations trend + breakdown
+  const regs = stats.registrations_by_day || [];
+  const maxCount = Math.max(1, ...regs.map(r => r.count));
+  document.getElementById('regChart').innerHTML = regs.map(r => `
+    <div title="${r.date}: ${r.count} new" style="flex:1;background:${r.count ? 'var(--brand-primary)' : 'var(--border)'};border-radius:3px 3px 0 0;height:${Math.max(4, (r.count / maxCount) * 90)}px;align-self:flex-end;"></div>`).join('');
+  if (regs.length) {
+    document.getElementById('regFirstDay').textContent = new Date(regs[0].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    document.getElementById('regLastDay').textContent = new Date(regs[regs.length-1].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+  document.getElementById('regApproved').textContent = stats.approved_fellows || 0;
+  document.getElementById('regPending').textContent = stats.pending_fellows || 0;
+  document.getElementById('regRejected').textContent = stats.rejected_fellows || 0;
+
+  // Payment status
+  const pay = stats.payments || {};
+  document.getElementById('paymentSub').textContent = pay.enabled ? `${pay.paid} of ${stats.total_fellows} fellows paid` : 'Payments are currently disabled';
+  renderDonutChart(document.getElementById('paymentDonut'), [
+    { label: 'Paid', value: pay.paid || 0, color: '#06D6A0' },
+    { label: 'Unpaid', value: pay.unpaid || 0, color: '#F43F5E' },
+  ], { size: 108 });
+  document.getElementById('revenueOut').textContent = (pay.revenue || 0).toLocaleString();
+
+  // Tracks breakdown
+  renderDonutChart(document.getElementById('trackDonut'), (stats.tracks || []).map(t => ({ label: t.name, value: t.count })));
+
+  // States breakdown
+  renderDonutChart(document.getElementById('stateDonut'), (stats.states || []).map(s => ({ label: s.name, value: s.count })));
+
+  // Load pending fellows
+  const pending = await api.get('/api/admin/fellows?status=pending&limit=5', true);
+  const pendingList = document.getElementById('pendingList');
+  if (!pending?.data?.length) {
+    pendingList.innerHTML = '<div class="empty-state" style="padding:20px;"><p>No pending applications</p></div>';
+  } else {
+    pendingList.innerHTML = pending.data.map(f => `
+      <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);">
+        <div class="avatar">${f.profile_photo ? `<img src="${f.profile_photo}"/>` : f.full_name.charAt(0)}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:600;font-size:0.84rem;">${f.full_name}</div>
+          <div style="font-size:0.72rem;color:var(--muted);">${f.tracks?.name || '—'} · ${formatDate(f.created_at)}</div>
+        </div>
+        <button class="btn btn-success btn-sm" onclick="approveFellow('${f.id}')">Approve</button>
+      </div>`).join('');
+  }
+
+  // Load recent fellows
+  const recent = await api.get('/api/admin/fellows?limit=5', true);
+  const recentList = document.getElementById('recentList');
+  if (!recent?.data?.length) {
+    recentList.innerHTML = '<div class="empty-state" style="padding:20px;"><p>No registrations yet</p></div>';
+  } else {
+    recentList.innerHTML = recent.data.map(f => `
+      <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);">
+        <div class="avatar">${f.profile_photo ? `<img src="${f.profile_photo}"/>` : f.full_name.charAt(0)}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:600;font-size:0.84rem;">${f.full_name}</div>
+          <div style="font-size:0.72rem;color:var(--muted);">${f.tracks?.name || '—'}</div>
+        </div>
+        <span class="badge badge-${f.status}">${f.status}</span>
+      </div>`).join('');
+  }
+
+  // Check unread messages
+  const msgs = await api.get('/api/messages/admin/all?status=unread', true);
+  if (msgs?.length > 0) {
+    const b = document.getElementById('msgBadge');
+    b.style.display = 'inline'; b.textContent = msgs.length;
+  }
+}
+
+async function approveFellow(id) {
+  const r = await api.patch(`/api/admin/fellows/${id}/status`, { status: 'approved' }, true);
+  if (r?.success) { showToast('Fellow approved!', 'success'); loadDashboard(); }
+  else showToast(r?.error || 'Failed.', 'error');
+}
+
+// ── Ads quick toggle ──────────────────────────────────────────────
+async function loadAdToggles() {
+  const s = await api.get('/api/admin/settings', true);
+  if (!s) return;
+  document.getElementById('quickAdsense').checked = s.adsense_enabled === 'true';
+  document.getElementById('quickMonetag').checked = s.monetag_enabled === 'true';
+}
+
+async function quickToggleAd(key, checked) {
+  const r = await api.patch('/api/admin/settings', { [key]: checked }, true);
+  if (r?.success) {
+    showToast(checked ? 'Ads turned on' : 'Ads turned off', 'success');
+  } else {
+    showToast(r?.error || 'Failed to update', 'error');
+    document.getElementById(key === 'adsense_enabled' ? 'quickAdsense' : 'quickMonetag').checked = !checked;
+  }
+}
+
+loadDashboard();
+loadAdToggles();
+</script>
+</body>
+</html>

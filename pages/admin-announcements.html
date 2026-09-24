@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Announcements — Drix Admin</title>
+<link rel="stylesheet" href="/css/style.css"/>
+<style>
+.ann-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:16px 20px;margin-bottom:12px;}
+.ann-card .ac-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
+.ann-card .ac-content{font-size:0.82rem;color:var(--muted);margin-top:8px;white-space:pre-wrap;line-height:1.55;max-width:640px;}
+.ann-card .ac-meta{font-size:0.68rem;color:var(--muted2);margin-top:8px;display:flex;gap:10px;flex-wrap:wrap;}
+.recip-hint{font-size:0.76rem;color:var(--muted);margin-top:-6px;margin-bottom:14px;}
+.recip-hint.warn{color:#FBBF24;}
+</style>
+</head>
+<body>
+<div class="layout">
+<aside class="sidebar">
+  <div class="sidebar-logo">DRIX Admin<span>Management Portal</span></div>
+  <nav class="sidebar-nav">
+    <div class="sidebar-section-label">Overview</div>
+    <a href="/admin/dashboard" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>Dashboard</a>
+    <a href="/admin/fellows" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></span>Fellows</a>
+    <a href="/admin/mentors" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>Mentors</a>
+    <a href="/admin/checkins" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>Check-ins</a>
+    <div class="sidebar-section-label">Content</div>
+    <a href="/admin/courses" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span>Tracks & Modules</a>
+    <a href="/admin/cohorts" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>Cohorts</a>
+    <a href="/admin/announcements" class="sidebar-link active"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg></span>Announcements</a>
+    <a href="/admin/submissions" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>Submissions</a>
+    <a href="/admin/blog" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span>Blog</a>
+    <a href="/admin/certificates" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg></span>Certificates</a>
+    <a href="/admin/messages" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></span>Messages</a>
+    <div class="sidebar-section-label">System</div>
+    <a href="/admin/settings" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M19.07 19.07l-1.41-1.41M4.93 19.07l1.41-1.41M12 2v2M12 20v2M2 12h2M20 12h2"/></svg></span>Settings</a>
+  </nav>
+  <div class="sidebar-bottom"><button onclick="adminLogout()" class="btn btn-outline w-full btn-sm">Sign Out</button></div>
+</aside>
+
+<main class="main-content">
+  <div class="flex-between mb-6">
+    <div><h1 style="font-size:1.4rem;font-weight:800;letter-spacing:-0.02em;">Announcements</h1><p style="color:var(--muted);font-size:0.8rem;margin-top:3px;">Post updates to everyone, one track, or one cohort</p></div>
+    <button class="btn btn-primary" onclick="openNewAnn()">
+      <span class="icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span>
+      New Announcement
+    </button>
+  </div>
+
+  <div id="annList"><div class="flex-center" style="padding:60px;"><span class="loader"></span></div></div>
+</main>
+</div>
+
+<!-- NEW/EDIT MODAL -->
+<div class="modal-overlay" id="annModal">
+  <div class="modal" style="max-width:560px;">
+    <div class="modal-header"><div class="modal-title" id="annModalTitle">New Announcement</div><button class="modal-close" onclick="closeModal('annModal')">✕</button></div>
+    <input type="hidden" id="annId"/>
+    <div class="form-group"><label class="form-label">Title *</label><input type="text" class="form-control" id="annTitle" placeholder="e.g. Cohort 3 kickoff call"/></div>
+    <div class="form-group"><label class="form-label">Content</label><textarea class="form-control" id="annContent" rows="5" placeholder="Write the announcement..."></textarea></div>
+    <div class="form-group"><label class="form-label">Audience</label>
+      <select class="form-control" id="annAudience" onchange="onAudienceChange()">
+        <option value="all">Everyone</option>
+        <option value="track">One track</option>
+        <option value="cohort">One cohort</option>
+      </select>
+    </div>
+    <div class="form-group" id="annTrackWrap" style="display:none;">
+      <label class="form-label">Track</label>
+      <select class="form-control" id="annTrackId" onchange="refreshRecipientCount()"></select>
+    </div>
+    <div class="form-group" id="annCohortWrap" style="display:none;">
+      <label class="form-label">Cohort</label>
+      <select class="form-control" id="annCohortId" onchange="refreshRecipientCount()"></select>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+      <label class="toggle"><input type="checkbox" id="annSendEmail" checked onchange="refreshRecipientCount()"/><span class="toggle-slider"></span></label>
+      <span style="font-size:0.82rem;color:var(--muted);">Also send as email</span>
+    </div>
+    <div class="recip-hint" id="recipHint">&nbsp;</div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-primary" onclick="saveAnn()" id="saveAnnBtn">Post Announcement</button>
+      <button class="btn btn-outline" onclick="closeModal('annModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/app.js"></script>
+<script>
+if (!auth.getAdminToken()) window.location.href = '/admin/login';
+let tracksCache = [], cohortsCache = [];
+
+function esc(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+async function loadAnnouncements() {
+  const [list, tracks, cohorts] = await Promise.all([
+    api.get('/api/announcements/admin/all', true),
+    api.get('/api/admin/tracks', true),
+    api.get('/api/admin/cohorts', true),
+  ]);
+  tracksCache = tracks || []; cohortsCache = cohorts || [];
+
+  const el = document.getElementById('annList');
+  if (!list?.length) {
+    el.innerHTML = `<div class="card flex-center" style="padding:48px;flex-direction:column;gap:10px;color:var(--muted);">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3"><path d="M3 11l18-5v12L3 14v-3z"/></svg>
+      <p style="font-size:0.84rem;">No announcements yet.</p></div>`;
+    return;
+  }
+  el.innerHTML = list.map(a => {
+    const audLabel = a.audience === 'all' ? 'Everyone' : a.audience === 'track' ? `Track: ${esc(a.tracks?.name || '—')}` : `Cohort: ${esc(a.cohorts?.name || '—')}`;
+    return `
+    <div class="ann-card">
+      <div class="ac-top">
+        <div>
+          <div style="font-weight:700;font-size:0.92rem;">${esc(a.title)}</div>
+          <div class="ac-content">${esc(a.content || '')}</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0;">
+          <button class="btn btn-outline btn-sm" onclick="openEditAnn('${a.id}')">Edit</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteAnn('${a.id}')">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="ac-meta">
+        <span class="badge badge-info">${audLabel}</span>
+        ${a.send_email ? `<span>${a.emailed_count != null ? `Emailed ${a.emailed_count}` : 'Email queued'}</span>` : '<span>No email sent</span>'}
+        <span>${formatDate(a.created_at)}</span>
+      </div>
+    </div>`;
+  }).join('');
+  window.annCache = list;
+}
+
+function onAudienceChange() {
+  const v = document.getElementById('annAudience').value;
+  document.getElementById('annTrackWrap').style.display = v === 'track' ? 'block' : 'none';
+  document.getElementById('annCohortWrap').style.display = v === 'cohort' ? 'block' : 'none';
+  if (!document.getElementById('annTrackId').options.length) {
+    document.getElementById('annTrackId').innerHTML = tracksCache.map(t => `<option value="${t.id}">${esc(t.name)}</option>`).join('');
+  }
+  if (!document.getElementById('annCohortId').options.length) {
+    document.getElementById('annCohortId').innerHTML = cohortsCache.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
+  }
+  refreshRecipientCount();
+}
+
+let recipTimer = null;
+function refreshRecipientCount() {
+  clearTimeout(recipTimer);
+  const hint = document.getElementById('recipHint');
+  if (!document.getElementById('annSendEmail').checked) { hint.textContent = 'Email is off for this post — fellows still see it on their dashboard.'; hint.className = 'recip-hint'; return; }
+  hint.textContent = 'Checking recipients…'; hint.className = 'recip-hint';
+  recipTimer = setTimeout(async () => {
+    const audience = document.getElementById('annAudience').value;
+    const track_id = document.getElementById('annTrackId').value;
+    const cohort_id = document.getElementById('annCohortId').value;
+    const qs = new URLSearchParams({ audience, ...(audience==='track'?{track_id}:{}), ...(audience==='cohort'?{cohort_id}:{}) });
+    const r = await api.get(`/api/announcements/admin/recipient-count?${qs}`, true);
+    if (!r) return;
+    hint.textContent = `This will email ${r.count} fellow${r.count===1?'':'s'} · ${r.remaining_today} of ${r.daily_limit} daily emails left`;
+    hint.className = 'recip-hint' + (r.count > r.remaining_today ? ' warn' : '');
+  }, 350);
+}
+
+function openNewAnn() {
+  document.getElementById('annModalTitle').textContent = 'New Announcement';
+  document.getElementById('saveAnnBtn').textContent = 'Post Announcement';
+  document.getElementById('annId').value = '';
+  document.getElementById('annTitle').value = '';
+  document.getElementById('annContent').value = '';
+  document.getElementById('annAudience').value = 'all';
+  document.getElementById('annSendEmail').checked = true;
+  onAudienceChange();
+  openModal('annModal');
+}
+
+function openEditAnn(id) {
+  const a = (window.annCache||[]).find(x => x.id === id);
+  if (!a) return;
+  document.getElementById('annModalTitle').textContent = 'Edit Announcement';
+  document.getElementById('saveAnnBtn').textContent = 'Save Changes';
+  document.getElementById('annId').value = a.id;
+  document.getElementById('annTitle').value = a.title;
+  document.getElementById('annContent').value = a.content || '';
+  document.getElementById('annAudience').value = a.audience;
+  document.getElementById('annSendEmail').checked = false; // editing never re-sends email
+  onAudienceChange();
+  if (a.audience === 'track') document.getElementById('annTrackId').value = a.track_id;
+  if (a.audience === 'cohort') document.getElementById('annCohortId').value = a.cohort_id;
+  document.getElementById('recipHint').textContent = 'Editing never re-sends the email.';
+  openModal('annModal');
+}
+
+async function saveAnn() {
+  const title = document.getElementById('annTitle').value.trim();
+  if (!title) return showToast('Title is required', 'error');
+  const audience = document.getElementById('annAudience').value;
+  const payload = {
+    title, content: document.getElementById('annContent').value,
+    audience,
+    track_id: audience === 'track' ? document.getElementById('annTrackId').value : null,
+    cohort_id: audience === 'cohort' ? document.getElementById('annCohortId').value : null,
+  };
+  const id = document.getElementById('annId').value;
+  const btn = document.getElementById('saveAnnBtn');
+  btn.disabled = true; btn.innerHTML = '<span class="loader"></span>';
+  let r;
+  if (id) {
+    r = await api.patch(`/api/announcements/admin/${id}`, payload, true);
+  } else {
+    payload.send_email = document.getElementById('annSendEmail').checked;
+    r = await api.post('/api/announcements/admin', payload, true);
+  }
+  btn.disabled = false; btn.textContent = id ? 'Save Changes' : 'Post Announcement';
+  if (r?.success) {
+    showToast(id ? 'Announcement updated!' : `Posted! ${r.emailing ? `Emailing ${r.emailing} fellows.` : ''}`, 'success');
+    closeModal('annModal');
+    loadAnnouncements();
+  } else {
+    showToast(r?.error || 'Failed to save', 'error');
+  }
+}
+
+async function deleteAnn(id) {
+  if (!confirm('Delete this announcement?')) return;
+  const r = await api.delete(`/api/announcements/admin/${id}`, true);
+  if (r?.success) { showToast('Deleted', 'success'); loadAnnouncements(); }
+  else showToast(r?.error || 'Failed', 'error');
+}
+
+loadAnnouncements();
+</script>
+</body>
+</html>

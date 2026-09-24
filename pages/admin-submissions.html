@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Submissions — Drix Admin</title>
+<link rel="stylesheet" href="/css/style.css"/>
+<style>
+.sub-row{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:16px 20px;margin-bottom:10px;display:flex;align-items:center;gap:16px;cursor:pointer;transition:var(--trans);}
+.sub-row:hover{border-color:var(--border3);}
+.sub-row .sr-fellow{font-weight:700;font-size:0.86rem;}
+.sub-row .sr-meta{font-size:0.72rem;color:var(--muted);margin-top:2px;}
+.filter-tabs{display:flex;gap:8px;margin-bottom:18px;}
+.filter-tab{padding:6px 14px;border-radius:50px;font-size:0.78rem;font-weight:600;border:1px solid var(--border);cursor:pointer;color:var(--muted);background:transparent;}
+.filter-tab.active{background:rgba(124,110,247,0.12);border-color:rgba(124,110,247,0.3);color:var(--brand-secondary);}
+.grade-band{border-radius:8px;padding:2px 9px;font-size:0.72rem;font-weight:700;}
+.grade-band.good{background:rgba(6,214,160,0.12);color:#06D6A0;}
+.grade-band.mid{background:rgba(124,110,247,0.12);color:var(--brand-secondary);}
+.grade-band.low{background:rgba(251,191,36,0.12);color:#FBBF24;}
+</style>
+</head>
+<body>
+<div class="layout">
+<aside class="sidebar">
+  <div class="sidebar-logo">DRIX Admin<span>Management Portal</span></div>
+  <nav class="sidebar-nav">
+    <div class="sidebar-section-label">Overview</div>
+    <a href="/admin/dashboard" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>Dashboard</a>
+    <a href="/admin/fellows" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></span>Fellows</a>
+    <a href="/admin/mentors" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>Mentors</a>
+    <a href="/admin/checkins" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>Check-ins</a>
+    <div class="sidebar-section-label">Content</div>
+    <a href="/admin/courses" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span>Tracks & Modules</a>
+    <a href="/admin/cohorts" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>Cohorts</a>
+    <a href="/admin/announcements" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg></span>Announcements</a>
+    <a href="/admin/submissions" class="sidebar-link active"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>Submissions</a>
+    <a href="/admin/blog" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span>Blog</a>
+    <a href="/admin/certificates" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg></span>Certificates</a>
+    <a href="/admin/messages" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></span>Messages</a>
+    <div class="sidebar-section-label">System</div>
+    <a href="/admin/settings" class="sidebar-link"><span class="icon icon-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M19.07 19.07l-1.41-1.41M4.93 19.07l1.41-1.41M12 2v2M12 20v2M2 12h2M20 12h2"/></svg></span>Settings</a>
+  </nav>
+  <div class="sidebar-bottom"><button onclick="adminLogout()" class="btn btn-outline w-full btn-sm">Sign Out</button></div>
+</aside>
+
+<main class="main-content">
+  <div class="flex-between mb-4" style="flex-wrap:wrap;gap:10px;">
+    <div><h1 style="font-size:1.4rem;font-weight:800;letter-spacing:-0.02em;">Submissions</h1><p style="color:var(--muted);font-size:0.8rem;margin-top:3px;">Review and grade assignment submissions</p></div>
+    <select class="form-control" id="trackFilter" style="width:220px;" onchange="loadSubs(1)">
+      <option value="">All tracks</option>
+    </select>
+  </div>
+
+  <div class="filter-tabs">
+    <button class="filter-tab active" data-s="ungraded" onclick="setStatus('ungraded')">Ungraded</button>
+    <button class="filter-tab" data-s="graded" onclick="setStatus('graded')">Graded</button>
+    <button class="filter-tab" data-s="all" onclick="setStatus('all')">All</button>
+  </div>
+
+  <div id="subList"><div class="flex-center" style="padding:60px;"><span class="loader"></span></div></div>
+  <div class="flex-between mt-4" id="pager" style="display:none;">
+    <button class="btn btn-outline btn-sm" id="prevPage" onclick="changePage(-1)">← Previous</button>
+    <span style="font-size:0.78rem;color:var(--muted);" id="pageLabel"></span>
+    <button class="btn btn-outline btn-sm" id="nextPage" onclick="changePage(1)">Next →</button>
+  </div>
+</main>
+</div>
+
+<!-- GRADE MODAL -->
+<div class="modal-overlay" id="gradeModal">
+  <div class="modal" style="max-width:560px;">
+    <div class="modal-header"><div class="modal-title">Review Submission</div><button class="modal-close" onclick="closeModal('gradeModal')">✕</button></div>
+    <input type="hidden" id="gradeSubId"/>
+    <div style="font-size:0.86rem;font-weight:700;margin-bottom:2px;" id="gradeAssignTitle"></div>
+    <div style="font-size:0.74rem;color:var(--muted);margin-bottom:14px;" id="gradeFellowLine"></div>
+    <div class="card" style="background:var(--bg2);margin-bottom:16px;max-height:180px;overflow-y:auto;">
+      <div style="font-size:0.82rem;white-space:pre-wrap;line-height:1.6;" id="gradeContent"></div>
+      <a href="#" target="_blank" id="gradeFileLink" style="display:none;font-size:0.8rem;margin-top:8px;">🔗 Open submitted file/link</a>
+    </div>
+    <div class="grid-2">
+      <div class="form-group"><label class="form-label">Points (out of <span id="gradeMax">100</span>)</label><input type="number" class="form-control" id="gradePoints" min="0"/></div>
+      <div class="form-group"><label class="form-label">Decision</label>
+        <select class="form-control" id="gradeDecision">
+          <option value="approved">Approve</option>
+          <option value="needs_revision">Needs revision</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group"><label class="form-label">Written feedback</label><textarea class="form-control" id="gradeFeedback" rows="4" placeholder="What did they do well? What should they improve?"></textarea></div>
+    <div class="alert alert-error" id="gradeAlert"></div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-primary" onclick="saveGrade()" id="saveGradeBtn">Save Review</button>
+      <button class="btn btn-outline" onclick="closeModal('gradeModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/app.js"></script>
+<script>
+if (!auth.getAdminToken()) window.location.href = '/admin/login';
+function esc(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+let status = 'ungraded', page = 1, lastPage = 1, subsCache = [];
+
+function setStatus(s) {
+  status = s; page = 1;
+  document.querySelectorAll('.filter-tab').forEach(b => b.classList.toggle('active', b.dataset.s === s));
+  loadSubs();
+}
+function changePage(d) { page = Math.max(1, page + d); loadSubs(); }
+
+async function loadTracksFilter() {
+  const tracks = await api.get('/api/admin/tracks', true);
+  const sel = document.getElementById('trackFilter');
+  sel.innerHTML = '<option value="">All tracks</option>' + (tracks||[]).map(t => `<option value="${t.id}">${esc(t.name)}</option>`).join('');
+}
+
+async function loadSubs() {
+  const list = document.getElementById('subList');
+  list.innerHTML = '<div class="flex-center" style="padding:60px;"><span class="loader"></span></div>';
+  const track_id = document.getElementById('trackFilter').value;
+  const qs = new URLSearchParams({ status, page, limit: 20, ...(track_id ? { track_id } : {}) });
+  const r = await api.get(`/api/admin/submissions?${qs}`, true);
+  subsCache = r?.data || [];
+  lastPage = Math.max(1, Math.ceil((r?.total || 0) / (r?.limit || 20)));
+
+  if (!subsCache.length) {
+    list.innerHTML = `<div class="card flex-center" style="padding:48px;flex-direction:column;gap:10px;color:var(--muted);">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      <p style="font-size:0.84rem;">Nothing here.</p></div>`;
+    document.getElementById('pager').style.display = 'none';
+    return;
+  }
+
+  list.innerHTML = subsCache.map(s => {
+    const pct = s.grade != null ? Math.round((s.grade / s.assignments.max_score) * 100) : null;
+    const band = pct == null ? '' : pct >= 80 ? 'good' : pct >= 60 ? 'mid' : 'low';
+    const statusBadge = { submitted: '<span class="badge badge-pending">Ungraded</span>', graded: '<span class="badge badge-approved">Approved</span>', returned: '<span class="badge badge-danger">Needs revision</span>' }[s.status] || '';
+    return `
+    <div class="sub-row" onclick="openGrade('${s.id}')">
+      <div class="avatar" style="width:38px;height:38px;flex-shrink:0;">${s.fellows?.profile_photo ? `<img src="${s.fellows.profile_photo}" alt=""/>` : esc(s.fellows?.full_name?.charAt(0) || '?')}</div>
+      <div style="flex:1;min-width:0;">
+        <div class="sr-fellow">${esc(s.fellows?.full_name || 'Unknown')}</div>
+        <div class="sr-meta">${esc(s.assignments?.title || '')} · ${esc(s.assignments?.modules?.tracks?.name || '')} · Submitted ${formatDate(s.submitted_at)}</div>
+      </div>
+      ${pct != null ? `<span class="grade-band ${band}">${s.grade}/${s.assignments.max_score}</span>` : ''}
+      ${statusBadge}
+    </div>`;
+  }).join('');
+
+  document.getElementById('pager').style.display = lastPage > 1 ? 'flex' : 'none';
+  document.getElementById('pageLabel').textContent = `Page ${page} of ${lastPage}`;
+  document.getElementById('prevPage').disabled = page <= 1;
+  document.getElementById('nextPage').disabled = page >= lastPage;
+}
+
+function openGrade(id) {
+  const s = subsCache.find(x => x.id === id);
+  if (!s) return;
+  document.getElementById('gradeSubId').value = s.id;
+  document.getElementById('gradeAssignTitle').textContent = s.assignments?.title || '';
+  document.getElementById('gradeFellowLine').textContent = `${s.fellows?.full_name || ''} · ${s.fellows?.fellow_id || ''} · Submitted ${formatDate(s.submitted_at)}`;
+  document.getElementById('gradeContent').textContent = s.content || '(no written answer)';
+  const fileLink = document.getElementById('gradeFileLink');
+  if (s.file_url) { fileLink.style.display = 'block'; fileLink.href = s.file_url; } else { fileLink.style.display = 'none'; }
+  document.getElementById('gradeMax').textContent = s.assignments?.max_score || 100;
+  document.getElementById('gradePoints').value = s.grade != null ? s.grade : '';
+  document.getElementById('gradeDecision').value = s.status === 'returned' ? 'needs_revision' : 'approved';
+  document.getElementById('gradeFeedback').value = s.feedback || '';
+  document.getElementById('gradeAlert').classList.remove('show');
+  openModal('gradeModal');
+}
+
+async function saveGrade() {
+  const id = document.getElementById('gradeSubId').value;
+  const decision = document.getElementById('gradeDecision').value;
+  const grade = document.getElementById('gradePoints').value;
+  const feedback = document.getElementById('gradeFeedback').value;
+  const alertBox = document.getElementById('gradeAlert');
+  if (decision === 'approved' && grade === '') { alertBox.textContent = 'Enter the points scored to approve.'; alertBox.classList.add('show'); return; }
+  const btn = document.getElementById('saveGradeBtn');
+  btn.disabled = true; btn.innerHTML = '<span class="loader"></span>';
+  const r = await api.patch(`/api/modules/admin/submission/${id}/grade`, { decision, grade: grade === '' ? null : Number(grade), feedback }, true);
+  btn.disabled = false; btn.textContent = 'Save Review';
+  if (r?.success) {
+    showToast(`Review saved${r.points_awarded ? ` — ${r.points_awarded} points awarded` : ''}`, 'success');
+    closeModal('gradeModal');
+    loadSubs();
+  } else {
+    alertBox.textContent = r?.error || 'Failed to save'; alertBox.classList.add('show');
+  }
+}
+
+loadTracksFilter();
+loadSubs();
+</script>
+</body>
+</html>

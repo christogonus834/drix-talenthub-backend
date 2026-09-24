@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Blog — Drix Tech Talent</title>
+<link rel="stylesheet" href="/css/style.css"/>
+<style>
+body{padding-top:64px;}
+.post-wrap{max-width:760px;margin:0 auto;padding:50px 24px 80px;}
+.post-back{font-size:0.8rem;color:var(--muted);display:inline-flex;align-items:center;gap:6px;margin-bottom:28px;}
+.post-back:hover{color:var(--text);}
+.post-tag{display:inline-block;padding:3px 10px;border-radius:50px;font-size:0.66rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:14px;background:rgba(124,110,247,0.1);color:var(--brand-secondary);}
+.post-title{font-size:1.9rem;font-weight:900;letter-spacing:-0.03em;line-height:1.25;margin-bottom:14px;}
+.post-meta{display:flex;align-items:center;gap:10px;font-size:0.8rem;color:var(--muted2);margin-bottom:28px;padding-bottom:28px;border-bottom:1px solid var(--border);}
+.post-cover{width:100%;max-height:380px;object-fit:cover;border-radius:var(--rl);margin-bottom:32px;}
+.post-content{font-size:0.94rem;line-height:1.85;color:var(--text2);}
+.post-content h1,.post-content h2,.post-content h3{color:var(--text);font-weight:800;letter-spacing:-0.02em;margin:32px 0 14px;}
+.post-content h1{font-size:1.5rem;}
+.post-content h2{font-size:1.25rem;}
+.post-content h3{font-size:1.05rem;}
+.post-content p{margin-bottom:18px;}
+.post-content ul,.post-content ol{padding-left:22px;margin-bottom:18px;}
+.post-content li{margin-bottom:6px;}
+.post-content a{color:var(--brand-secondary);}
+.post-content strong{color:var(--text);}
+.post-content code{background:var(--surface2);padding:2px 6px;border-radius:4px;font-size:0.86em;}
+</style>
+</head>
+<body>
+<nav class="navbar">
+  <a href="/" class="nav-logo">DRIX<span> Tech Talent</span></a>
+  <div class="nav-links">
+    <a href="/">Home</a><a href="/blog" style="color:var(--text);">Blog</a>
+    <a href="/contact">Contact</a>
+    <a href="/login">Login</a>
+    <a href="/register" class="btn btn-primary btn-sm">Apply Now</a>
+  </div>
+</nav>
+
+<div class="post-wrap" id="postWrap">
+  <div class="flex-center" style="padding:60px;"><span class="loader"></span></div>
+</div>
+
+<footer style="border-top:1px solid var(--border);padding:24px 56px;display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:0.8rem;flex-wrap:wrap;gap:12px;margin-top:20px;">
+  <div>Drix Software Foundation © 2026 · Sponsored by ePayBillz Telecomm</div>
+  <div style="display:flex;gap:20px;"><a href="/terms" style="color:var(--muted);">Terms</a><a href="/contact" style="color:var(--muted);">Contact</a><a href="/verify" style="color:var(--muted);">Verify Certificate</a></div>
+</footer>
+
+<script src="/js/app.js"></script>
+<script>
+function formatDate(d) {
+  if (!d) return '';
+  return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str || '';
+  return div.innerHTML;
+}
+
+// ── Lightweight Markdown → HTML renderer ───────────────────────────────
+// Supports: # ## ### headings, **bold**, *italic*, [text](url), - lists, paragraphs.
+function renderMarkdown(md) {
+  const lines = (md || '').replace(/\r\n/g, '\n').split('\n');
+  let html = '';
+  let inList = false;
+  let paragraph = [];
+
+  function inline(text) {
+    let t = escapeHtml(text);
+    t = t.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+    t = t.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    t = t.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+    t = t.replace(/`([^`]+)`/g, '<code>$1</code>');
+    return t;
+  }
+  function flushParagraph() {
+    if (paragraph.length) { html += `<p>${inline(paragraph.join(' '))}</p>`; paragraph = []; }
+  }
+  function closeList() {
+    if (inList) { html += '</ul>'; inList = false; }
+  }
+
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line) { flushParagraph(); closeList(); continue; }
+
+    const h = line.match(/^(#{1,3})\s+(.*)$/);
+    if (h) {
+      flushParagraph(); closeList();
+      const level = h[1].length;
+      html += `<h${level}>${inline(h[2])}</h${level}>`;
+      continue;
+    }
+
+    const li = line.match(/^[-*]\s+(.*)$/);
+    if (li) {
+      flushParagraph();
+      if (!inList) { html += '<ul>'; inList = true; }
+      html += `<li>${inline(li[1])}</li>`;
+      continue;
+    }
+
+    closeList();
+    paragraph.push(line);
+  }
+  flushParagraph();
+  closeList();
+  return html;
+}
+
+async function loadPost() {
+  const wrap = document.getElementById('postWrap');
+  const slug = new URLSearchParams(window.location.search).get('slug')
+    || window.location.pathname.split('/').filter(Boolean).pop();
+
+  try {
+    const res = await fetch(API_BASE + '/api/blog/' + encodeURIComponent(slug));
+    if (res.status === 404) {
+      wrap.innerHTML = `
+        <div style="text-align:center;padding:60px 20px;">
+          <h2 style="font-size:1.2rem;font-weight:800;margin-bottom:10px;">Post not found</h2>
+          <p style="color:var(--muted);font-size:0.86rem;margin-bottom:20px;">This post may have been unpublished or the link is incorrect.</p>
+          <a href="/blog" class="btn btn-outline btn-sm">Back to Blog</a>
+        </div>`;
+      return;
+    }
+    const p = await res.json();
+    document.title = `${p.title} — Drix Tech Talent Blog`;
+
+    wrap.innerHTML = `
+      <a href="/blog" class="post-back">← Back to Blog</a>
+      <div class="post-tag">${escapeHtml(p.tag)}</div>
+      <h1 class="post-title">${escapeHtml(p.title)}</h1>
+      <div class="post-meta">
+        <span>${escapeHtml(p.author_name)}</span><span>·</span><span>${formatDate(p.published_at)}</span><span>·</span><span>${p.read_minutes || 5} min read</span>
+      </div>
+      ${p.cover_image_url ? `<img src="${p.cover_image_url}" class="post-cover"/>` : ''}
+      <div class="post-content">${renderMarkdown(p.content)}</div>
+    `;
+  } catch (e) {
+    wrap.innerHTML = `<div style="padding:40px;text-align:center;color:var(--muted);">Failed to load this post. Please try again later.</div>`;
+  }
+}
+
+loadPost();
+</script>
+</body>
+</html>
