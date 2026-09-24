@@ -1,11 +1,13 @@
-// routes/ai.js — Gemini proxy. The API key lives only here, in Render's environment
-// variables. It is never sent to (or visible in) the browser.
+// routes/ai.js — Gemini proxy, with a Groq fallback when Gemini is fully exhausted or down.
+// Keys live only here, in Render's environment variables. Never sent to (or visible in) the browser.
 //
 // Why fellows hit "temporarily unavailable" after a few questions:
 // one shared free-tier key = a small per-minute / per-day quota PER MODEL, shared by every fellow.
-// This route now (1) rotates to another model when one is out of quota, (2) remembers which
+// This route (1) rotates across Gemini models when one is out of quota, (2) remembers which
 // models are cooling down so it doesn't waste calls, (3) retries brief overloads, (4) caches
-// repeated questions, and (5) throttles each fellow so one person can't drain the shared quota.
+// repeated questions, (5) throttles each fellow so one person can't drain the shared quota, and
+// (6) falls back to Groq (a separate, free, no-card-required provider) if every Gemini model is
+// exhausted or unreachable — so fellows keep getting answers instead of an error.
 const express = require('express');
 const router = express.Router();
 const { authMiddleware } = require('../middleware/auth');
@@ -18,6 +20,11 @@ const MODELS = [...new Set(
       .filter(Boolean).join(','))
     .split(',').map(m => m.trim()).filter(Boolean)
 )];
+
+// Groq fallback — free tier, no credit card, OpenAI-compatible endpoint. Only used when every
+// Gemini model above is out of quota or unreachable. Override with GROQ_MODEL if you want a
+// different one (e.g. 'llama-3.1-8b-instant' for a higher daily cap, 'gpt-oss-120b', etc).
+const GROQ_MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const cooldown = new Map();          // model -> timestamp (ms) until which it is skipped
@@ -50,7 +57,7 @@ async function askGemini(key, prompt, fetchFn = fetch) {
         }
       );
       data = await response.json().catch(() => ({}));
-      if (!data.error) return { data, model };
+      if (!data.error) return { data, model, provider: 'gemini' };
 
       code = data.error.code;
       console.error(`[AI] Gemini error (model ${model}): ${code} ${data.error.status || ''} — ${data.error.message}`);
@@ -63,6 +70,34 @@ async function askGemini(key, prompt, fetchFn = fetch) {
     return { error: { fatal: true, code } };                                            // 400/401/403: key or setup problem
   }
   return { error: { quota, code: quota ? 429 : 503 } };
+}
+
+// Groq cools down the same way Gemini models do, so repeated exhausted-everything requests
+// don't hammer it either.
+async function askGroq(key, prompt, fetchFn = fetch) {
+  if ((cooldown.get('groq:' + GROQ_MODEL) || 0) > Date.now()) return { error: { quota: true, code: 429 } };
+  try {
+    const response = await fetchFn('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+      body: JSON.stringify({
+        model: GROQ_MODEL,
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.7, max_tokens: 1024,
+      })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!data.error && data.choices?.[0]?.message?.content) {
+      return { data: { text: data.choices[0].message.content }, model: GROQ_MODEL, provider: 'groq' };
+    }
+    const code = response.status;
+    console.error(`[AI] Groq error: ${code} — ${data.error?.message || 'unknown'}`);
+    if (code === 429) cooldown.set('groq:' + GROQ_MODEL, Date.now() + 60 * 1000);
+    return { error: { quota: code === 429, code } };
+  } catch (e) {
+    console.error('[AI] Groq request failed:', e.message);
+    return { error: { quota: false, code: 503 } };
+  }
 }
 
 // ── per-fellow throttle (protects the shared quota) ───────────────────
@@ -93,8 +128,9 @@ router.post('/chat', authMiddleware, async (req, res) => {
     const context = String(req.body?.context || 'General').slice(0, 500);
     if (!message) return res.status(400).json({ error: 'Message is required.' });
 
-    const key = process.env.GEMINI_API_KEY;
-    if (!key) return res.json({ success: false, not_configured: true });
+    const geminiKey = process.env.GEMINI_API_KEY;
+    const groqKey = process.env.GROQ_API_KEY;
+    if (!geminiKey && !groqKey) return res.json({ success: false, not_configured: true });
 
     const k = cacheKey(context, message);
     const cached = cacheGet(k);
@@ -105,7 +141,11 @@ router.post('/chat', authMiddleware, async (req, res) => {
 
     const prompt = `You are a helpful AI learning assistant for the Drix Tech Talent Programme, a Nigerian tech training fellowship. Help students understand their coursework, answer tech questions, and guide their learning. Be concise, practical and encouraging. Keep answers short and clear.\n\nLesson context: ${context}\n\nStudent question: ${message}`;
 
-    const result = await askGemini(key, prompt);
+    let result = { error: { quota: false, code: 503 } };
+    if (geminiKey) result = await askGemini(geminiKey, prompt);
+    // Fall back to Groq if Gemini isn't configured, or every Gemini model is out of quota/down.
+    if (result.error && groqKey) result = await askGroq(groqKey, prompt);
+
     if (result.error) {
       if (result.error.quota) {
         return res.status(429).json({ error: 'The AI assistant is very busy right now. Please try again in a minute.' });
@@ -113,15 +153,18 @@ router.post('/chat', authMiddleware, async (req, res) => {
       return res.status(502).json({ error: 'AI assistant is temporarily unavailable.' });
     }
 
-    const cand = result.data.candidates?.[0];
-    const reply = (cand?.content?.parts || []).map(p => p.text || '').join('').trim();
-    if (!reply) {
-      console.error('[AI] Empty reply. finishReason:', cand?.finishReason, 'blocked:', result.data.promptFeedback?.blockReason);
-      return res.json({ success: true, reply: 'I could not answer that one. Try rephrasing your question.' });
+    let reply;
+    if (result.provider === 'groq') {
+      reply = (result.data.text || '').trim();
+    } else {
+      const cand = result.data.candidates?.[0];
+      reply = (cand?.content?.parts || []).map(p => p.text || '').join('').trim();
+      if (!reply) console.error('[AI] Empty reply. finishReason:', cand?.finishReason, 'blocked:', result.data.promptFeedback?.blockReason);
     }
+    if (!reply) return res.json({ success: true, reply: 'I could not answer that one. Try rephrasing your question.' });
 
     cacheSet(k, reply);
-    res.json({ success: true, reply, model: result.model });
+    res.json({ success: true, reply, model: result.model, provider: result.provider });
   } catch (err) {
     console.error('AI chat error:', err);
     res.status(500).json({ error: 'AI assistant is temporarily unavailable.' });
@@ -129,4 +172,4 @@ router.post('/chat', authMiddleware, async (req, res) => {
 });
 
 module.exports = router;
-module.exports._test = { askGemini, throttled, cooldown, MODELS, LIMIT };
+module.exports._test = { askGemini, askGroq, throttled, cooldown, MODELS, GROQ_MODEL, LIMIT };

@@ -11,6 +11,7 @@ const PUBLIC_SETTING_KEYS = [
   'payment_enabled', 'payment_provider', 'payment_currency',
   'flutterwave_public_key', 'paystack_public_key',
   'adsense_enabled', 'adsense_client_id', 'adsense_slot_id',
+  'monetag_enabled', 'monetag_zone_script', 'monetag_weekends_only',
 ];
 
 // Fellow columns that are safe to return. NEVER select('*') on fellows in a response — it includes password_hash.

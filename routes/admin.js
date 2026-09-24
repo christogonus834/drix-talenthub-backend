@@ -21,24 +21,82 @@ router.use(adminMiddleware);
 // ─── DASHBOARD STATS ────────────────────────────────────────────────
 router.get('/stats', async (req, res) => {
   try {
-    const [fellows, pending, tracks, cohorts] = await Promise.all([
-      supabase.from('fellows').select('id, status, created_at, points'),
+    const [fellows, pending, tracks, cohorts, payments, settings] = await Promise.all([
+      supabase.from('fellows').select('id, status, created_at, points, payment_verified, track_id, state, tracks(name)'),
       supabase.from('fellows').select('id').eq('status', 'pending'),
-      supabase.from('tracks').select('id').eq('is_active', true),
+      supabase.from('tracks').select('id, name').eq('is_active', true),
       supabase.from('cohorts').select('id').eq('is_active', true),
+      supabase.from('payments').select('status, amount'),
+      getSettings(),
     ]);
 
-    const approved = fellows.data?.filter(f => f.status === 'approved').length || 0;
-    const total = fellows.data?.length || 0;
+    const all = fellows.data || [];
+    const approved = all.filter(f => f.status === 'approved').length;
+    const rejected = all.filter(f => f.status === 'rejected').length;
+    const total = all.length;
+
+    // Registrations by day, last 14 days — for the trend line
+    const days = [];
+    for (let i = 13; i >= 0; i--) {
+      const d = new Date(); d.setUTCDate(d.getUTCDate() - i);
+      days.push(d.toISOString().slice(0, 10));
+    }
+    const byDay = Object.fromEntries(days.map(d => [d, 0]));
+    all.forEach(f => { const d = (f.created_at || '').slice(0, 10); if (d in byDay) byDay[d]++; });
+
+    // Payment status — only meaningful once payment_enabled is on, but always safe to report
+    const paymentEnabled = settings.payment_enabled === 'true';
+    const paidCount = all.filter(f => f.payment_verified).length;
+    const unpaidCount = total - paidCount;
+    const paymentLog = payments.data || [];
+    const revenue = paymentLog.filter(p => p.status === 'success').reduce((s, p) => s + Number(p.amount || 0), 0);
+    const paymentBreakdown = {
+      success: paymentLog.filter(p => p.status === 'success').length,
+      pending: paymentLog.filter(p => p.status === 'pending').length,
+      failed: paymentLog.filter(p => p.status === 'failed').length,
+    };
+
+    // Fellows per track
+    const trackCounts = {};
+    all.forEach(f => {
+      const name = f.tracks?.name || 'No track';
+      trackCounts[name] = (trackCounts[name] || 0) + 1;
+    });
+    const byTrack = (tracks.data || []).map(t => ({ name: t.name, count: trackCounts[t.name] || 0 }))
+      .concat(trackCounts['No track'] ? [{ name: 'No track', count: trackCounts['No track'] }] : [])
+      .sort((a, b) => b.count - a.count);
+
+    // Fellows per state (top 10, rest bucketed as "Other")
+    const stateCounts = {};
+    all.forEach(f => {
+      const name = (f.state || '').trim() || 'Not specified';
+      stateCounts[name] = (stateCounts[name] || 0) + 1;
+    });
+    const stateSorted = Object.entries(stateCounts).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count);
+    const byState = stateSorted.slice(0, 10);
+    const otherStates = stateSorted.slice(10).reduce((s, r) => s + r.count, 0);
+    if (otherStates) byState.push({ name: 'Other', count: otherStates });
 
     res.json({
       total_fellows: total,
       approved_fellows: approved,
       pending_fellows: pending.data?.length || 0,
+      rejected_fellows: rejected,
       active_tracks: tracks.data?.length || 0,
       active_cohorts: cohorts.data?.length || 0,
+      registrations_by_day: days.map(d => ({ date: d, count: byDay[d] })),
+      payments: {
+        enabled: paymentEnabled,
+        paid: paidCount,
+        unpaid: unpaidCount,
+        revenue,
+        breakdown: paymentBreakdown,
+      },
+      tracks: byTrack,
+      states: byState,
     });
   } catch (err) {
+    console.error('Stats error:', err);
     res.status(500).json({ error: 'Failed to fetch stats.' });
   }
 });
