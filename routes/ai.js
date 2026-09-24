@@ -14,17 +14,27 @@ const { authMiddleware } = require('../middleware/auth');
 
 // Each model has its own free quota, so more models = more capacity.
 // Override the whole list on Render with GEMINI_MODELS="modelA,modelB" (first is tried first).
+// gemini-2.5-* and gemini-2.0-* returned 404 "no longer available to new users" in production
+// logs on 24 Sep 2026 — Google has moved new API keys onto the Gemini 3 line. Update this list
+// (or override with GEMINI_MODELS on Render) if Google retires these too.
 const MODELS = [...new Set(
   (process.env.GEMINI_MODELS ||
-    [process.env.GEMINI_MODEL, 'gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-flash-latest']
+    [process.env.GEMINI_MODEL, 'gemini-flash-latest', 'gemini-3.5-flash', 'gemini-3.1-flash-lite', 'gemini-3-flash-preview']
       .filter(Boolean).join(','))
     .split(',').map(m => m.trim()).filter(Boolean)
 )];
 
 // Groq fallback — free tier, no credit card, OpenAI-compatible endpoint. Only used when every
-// Gemini model above is out of quota or unreachable. Override with GROQ_MODEL if you want a
-// different one (e.g. 'llama-3.1-8b-instant' for a higher daily cap, 'gpt-oss-120b', etc).
-const GROQ_MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+// Gemini model above is out of quota or unreachable. Groq's catalog varies by account (some
+// models are gated), so — same as Gemini above — this tries a short list and skips any that
+// come back "does not exist / no access" instead of betting everything on one hardcoded name.
+// Override the whole list with GROQ_MODELS on Render (first one wins), or GROQ_MODEL for a single one.
+const GROQ_MODELS = [...new Set(
+  (process.env.GROQ_MODELS ||
+    [process.env.GROQ_MODEL, 'llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'llama-3.1-70b-versatile', 'gemma2-9b-it']
+      .filter(Boolean).join(','))
+    .split(',').map(m => m.trim()).filter(Boolean)
+)];
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const cooldown = new Map();          // model -> timestamp (ms) until which it is skipped
@@ -73,31 +83,37 @@ async function askGemini(key, prompt, fetchFn = fetch) {
 }
 
 // Groq cools down the same way Gemini models do, so repeated exhausted-everything requests
-// don't hammer it either.
+// don't hammer it either. Tries each model in GROQ_MODELS in turn; a 404 (model doesn't exist /
+// no access on this account) or 429 (out of quota) moves to the next one instead of giving up.
 async function askGroq(key, prompt, fetchFn = fetch) {
-  if ((cooldown.get('groq:' + GROQ_MODEL) || 0) > Date.now()) return { error: { quota: true, code: 429 } };
-  try {
-    const response = await fetchFn('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
-      body: JSON.stringify({
-        model: GROQ_MODEL,
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.7, max_tokens: 1024,
-      })
-    });
-    const data = await response.json().catch(() => ({}));
-    if (!data.error && data.choices?.[0]?.message?.content) {
-      return { data: { text: data.choices[0].message.content }, model: GROQ_MODEL, provider: 'groq' };
+  let quota = false;
+  for (const model of GROQ_MODELS) {
+    if ((cooldown.get('groq:' + model) || 0) > Date.now()) { quota = true; continue; }
+    try {
+      const response = await fetchFn('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+        body: JSON.stringify({
+          model,
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.7, max_tokens: 1024,
+        })
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!data.error && data.choices?.[0]?.message?.content) {
+        return { data: { text: data.choices[0].message.content }, model, provider: 'groq' };
+      }
+      const code = response.status;
+      console.error(`[AI] Groq error (model ${model}): ${code} — ${data.error?.message || 'unknown'}`);
+      if (code === 429) { cooldown.set('groq:' + model, Date.now() + 60 * 1000); quota = true; continue; }
+      if (code === 404) continue;                                    // this account can't use this model — try the next
+      return { error: { quota: false, code } };                      // a real failure (bad key, etc.) — stop
+    } catch (e) {
+      console.error('[AI] Groq request failed:', e.message);
+      return { error: { quota: false, code: 503 } };
     }
-    const code = response.status;
-    console.error(`[AI] Groq error: ${code} — ${data.error?.message || 'unknown'}`);
-    if (code === 429) cooldown.set('groq:' + GROQ_MODEL, Date.now() + 60 * 1000);
-    return { error: { quota: code === 429, code } };
-  } catch (e) {
-    console.error('[AI] Groq request failed:', e.message);
-    return { error: { quota: false, code: 503 } };
   }
+  return { error: { quota, code: quota ? 429 : 404 } };
 }
 
 // ── per-fellow throttle (protects the shared quota) ───────────────────
@@ -172,4 +188,4 @@ router.post('/chat', authMiddleware, async (req, res) => {
 });
 
 module.exports = router;
-module.exports._test = { askGemini, askGroq, throttled, cooldown, MODELS, GROQ_MODEL, LIMIT };
+module.exports._test = { askGemini, askGroq, throttled, cooldown, MODELS, GROQ_MODELS, LIMIT };
