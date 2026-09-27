@@ -137,6 +137,39 @@ router.get('/email-preferences', authMiddleware, async (req, res) => {
   const { data } = await supabase.from('fellows').select('email_notifications').eq('id', req.user.id).single();
   res.json({ email_notifications: data?.email_notifications !== false });
 });
+// ─── 3MTT ID (Federal Ministry programme reference) ──────────────────
+// Verified against the official roster admin imports from the ministry — not free text. A fellow
+// can only link an ID that (a) exists on the roster, (b) isn't already claimed by someone else,
+// and (c) was issued to their own email address.
+router.patch('/mtt-id', authMiddleware, async (req, res) => {
+  try {
+    const mtt_id = cleanText(req.body?.mtt_id, 40);
+    if (!mtt_id) return res.status(400).json({ error: '3MTT ID is required.' });
+
+    const { data: me } = await supabase.from('fellows').select('email, mtt_id').eq('id', req.user.id).single();
+    if (me?.mtt_id) return res.status(400).json({ error: 'A 3MTT ID is already linked to your account. Contact an admin if it needs to change.' });
+
+    const { data: roster } = await supabase.from('mtt_roster').select('*').ilike('mtt_id', mtt_id).maybeSingle();
+    if (!roster) {
+      return res.status(400).json({ error: "We couldn't find that ID on the official 3MTT roster. Double-check it, or contact admin if you believe this is an error." });
+    }
+    if (roster.matched_fellow_id && roster.matched_fellow_id !== req.user.id) {
+      return res.status(400).json({ error: 'This 3MTT ID is already linked to another account.' });
+    }
+    if (String(roster.expected_email).toLowerCase() !== String(me.email).toLowerCase()) {
+      return res.status(400).json({ error: 'This ID is registered to a different email on the 3MTT roster. Please contact admin.' });
+    }
+
+    await supabase.from('fellows').update({ mtt_id: roster.mtt_id }).eq('id', req.user.id);
+    await supabase.from('mtt_roster').update({ matched_fellow_id: req.user.id, matched_at: new Date().toISOString() }).eq('id', roster.id);
+
+    res.json({ success: true, mtt_id: roster.mtt_id, assigned_track: roster.assigned_track || null });
+  } catch (err) {
+    console.error('mtt-id verify error:', err);
+    res.status(500).json({ error: 'Failed to verify your 3MTT ID.' });
+  }
+});
+
 router.patch('/email-preferences', authMiddleware, async (req, res) => {
   try {
     const value = req.body?.email_notifications === true;

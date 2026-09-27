@@ -3,8 +3,9 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const supabase = require('../config/supabase');
 const { adminMiddleware, requireRole, invalidateUser } = require('../middleware/auth');
-const { getSettings, pickPublicSettings, FELLOW_COLUMNS, safe, isUuid, weekStart } = require('../services/util');
+const { getSettings, pickPublicSettings, FELLOW_COLUMNS, safe, isUuid, weekStart, frontendUrl } = require('../services/util');
 const { sendToFellow, sendBulk } = require('../services/email');
+const { loadTrackState } = require('../services/progress');
 
 // PUBLIC (no auth): only whitelisted, non-secret settings. Secret keys are never returned here.
 router.get('/settings/public', async (req, res) => {
@@ -22,7 +23,7 @@ router.use(adminMiddleware);
 router.get('/stats', async (req, res) => {
   try {
     const [fellows, pending, tracks, cohorts, payments, settings] = await Promise.all([
-      supabase.from('fellows').select('id, status, created_at, points, payment_verified, track_id, state, tracks(name)'),
+      supabase.from('fellows').select('id, status, created_at, points, payment_verified, track_id, state, country, tracks(name)'),
       supabase.from('fellows').select('id').eq('status', 'pending'),
       supabase.from('tracks').select('id, name').eq('is_active', true),
       supabase.from('cohorts').select('id').eq('is_active', true),
@@ -77,6 +78,14 @@ router.get('/stats', async (req, res) => {
     const otherStates = stateSorted.slice(10).reduce((s, r) => s + r.count, 0);
     if (otherStates) byState.push({ name: 'Other', count: otherStates });
 
+    // Fellows per country
+    const countryCounts = {};
+    all.forEach(f => {
+      const name = (f.country || '').trim() || 'Nigeria';
+      countryCounts[name] = (countryCounts[name] || 0) + 1;
+    });
+    const byCountry = Object.entries(countryCounts).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count);
+
     res.json({
       total_fellows: total,
       approved_fellows: approved,
@@ -94,6 +103,7 @@ router.get('/stats', async (req, res) => {
       },
       tracks: byTrack,
       states: byState,
+      countries: byCountry,
     });
   } catch (err) {
     console.error('Stats error:', err);
@@ -104,7 +114,7 @@ router.get('/stats', async (req, res) => {
 // ─── FELLOWS CRUD ────────────────────────────────────────────────────
 router.get('/fellows', async (req, res) => {
   try {
-    const { status, track_id, cohort_id, search, page = 1, limit = 20 } = req.query;
+    const { status, track_id, cohort_id, state, country, search, page = 1, limit = 20 } = req.query;
     let query = supabase
       .from('fellows')
       .select(`${FELLOW_COLUMNS}, tracks(name), cohorts(name)`, { count: 'exact' })
@@ -114,6 +124,8 @@ router.get('/fellows', async (req, res) => {
     if (status) query = query.eq('status', status);
     if (track_id) query = query.eq('track_id', track_id);
     if (cohort_id) query = query.eq('cohort_id', cohort_id);
+    if (state) query = query.eq('state', state);
+    if (country) query = query.eq('country', country);
     if (search) query = query.ilike('full_name', `%${String(search).replace(/[%_,()]/g, ' ').slice(0, 80)}%`);
 
     const { data, error, count } = await query;
@@ -121,6 +133,79 @@ router.get('/fellows', async (req, res) => {
     res.json({ data, count, page: Number(page), limit: Number(limit) });
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch fellows.' });
+  }
+});
+
+// Distinct states currently in use, for the admin filter dropdown (e.g. so 3MTT can ask
+// "just the Kano or Kaduna cohort" and it's a one-click filter, not a manual search).
+router.get('/fellows/states', async (req, res) => {
+  try {
+    const { data } = await supabase.from('fellows').select('state').not('state', 'is', null);
+    const states = [...new Set((data || []).map(r => r.state).filter(Boolean))].sort();
+    res.json(states);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to load states.' });
+  }
+});
+
+// CSV export for progress/analytics — 3MTT's automated tracking (and anyone else) expects this
+// in percentage-completed / score / portfolio-link shape. Supports the same filters as the list
+// view (status, track_id, cohort_id, state, country) so "just the Kano cohort" is one URL param.
+router.get('/export/progress.csv', requireRole('admin', 'super_admin'), async (req, res) => {
+  try {
+    const { status = 'approved', track_id, cohort_id, state, country } = req.query;
+    let query = supabase.from('fellows')
+      .select('id, full_name, email, fellow_id, mtt_id, country, state, points, track_id, tracks(name), cohorts(name), mentor_id, mentors(full_name), portfolio_slug, portfolio_public, created_at')
+      .order('full_name');
+    if (status) query = query.eq('status', status);
+    if (track_id) query = query.eq('track_id', track_id);
+    if (cohort_id) query = query.eq('cohort_id', cohort_id);
+    if (state) query = query.eq('state', state);
+    if (country) query = query.eq('country', country);
+
+    const { data: fellows, error } = await query;
+    if (error) throw error;
+
+    const rows = [];
+    for (const f of (fellows || [])) {
+      let percent = 0;
+      if (f.track_id) {
+        try { const st = await loadTrackState(f.id, f.track_id); percent = st?.percent || 0; } catch (e) { /* leave 0 */ }
+      }
+      const { data: subs } = await supabase.from('assignment_submissions')
+        .select('grade, assignments(max_score)').eq('fellow_id', f.id).eq('status', 'graded');
+      const scored = (subs || []).filter(s => s.grade != null && s.assignments?.max_score);
+      const avgScore = scored.length
+        ? Math.round(scored.reduce((s, x) => s + (x.grade / x.assignments.max_score) * 100, 0) / scored.length)
+        : '';
+      const portfolioUrl = (f.portfolio_public && f.portfolio_slug) ? `${frontendUrl()}/portfolio/${f.portfolio_slug}` : '';
+
+      rows.push([
+        f.full_name, f.email, f.fellow_id || '', f.mtt_id || '', f.country || '', f.state || '',
+        f.tracks?.name || '', f.cohorts?.name || '', f.mentors?.full_name || '',
+        percent, avgScore, f.points || 0, portfolioUrl,
+        new Date(f.created_at).toISOString().slice(0, 10),
+      ]);
+    }
+
+    const headers = ['Full Name', 'Email', 'Fellow ID', '3MTT ID', 'Country', 'State', 'Track', 'Cohort', 'Mentor',
+      'Percent Completed', 'Average Score', 'Points', 'Portfolio Link', 'Registered'];
+    // Guard against CSV formula injection: a name/email starting with =, +, -, or @ can be
+    // interpreted as a formula by Excel/Sheets when opened. Prefixing with a tab neutralises
+    // that without changing how the value displays.
+    const esc = v => {
+      let s = String(v ?? '');
+      if (/^[=+\-@]/.test(s)) s = '\t' + s;
+      return `"${s.replace(/"/g, '""')}"`;
+    };
+    const csv = [headers, ...rows].map(r => r.map(esc).join(',')).join('\r\n');
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="drix-progress-export-${new Date().toISOString().slice(0, 10)}.csv"`);
+    res.send(csv);
+  } catch (err) {
+    console.error('CSV export error:', err);
+    res.status(500).json({ error: 'Failed to generate export.' });
   }
 });
 
@@ -429,6 +514,67 @@ router.post('/notifications/broadcast', async (req, res) => {
 });
 
 const bcryptCost = 12;
+
+// ─── 3MTT ROSTER (official cohort list, imported from the ministry) ─
+// Simple hand-rolled CSV parsing (no quoted-field support) — fine for an admin pasting a plain
+// mtt_id,name,email,track list; avoids pulling in a CSV dependency for one small admin tool.
+function parseSimpleCsv(text) {
+  return String(text || '').split(/\r?\n/).map(l => l.trim()).filter(Boolean)
+    .map(line => line.split(',').map(c => c.trim()));
+}
+
+router.post('/mtt-roster/import', requireRole('admin', 'super_admin'), async (req, res) => {
+  try {
+    const rows = parseSimpleCsv(req.body?.csv);
+    if (!rows.length) return res.status(400).json({ error: 'Paste at least one row: mtt_id,name,email,track' });
+
+    // Skip an optional header row (e.g. "mtt_id,name,email,track")
+    let dataRows = rows;
+    if (/^mtt.?id$/i.test(rows[0][0] || '')) dataRows = rows.slice(1);
+
+    const payload = dataRows.map(cols => ({
+      mtt_id: cleanText(cols[0], 40),
+      expected_name: cleanText(cols[1], 120),
+      expected_email: String(cols[2] || '').trim().toLowerCase(),
+      assigned_track: cleanText(cols[3], 80) || null,
+    })).filter(r => r.mtt_id && r.expected_name && r.expected_email);
+
+    if (!payload.length) return res.status(400).json({ error: 'No valid rows found. Each line needs at least an ID, name and email.' });
+
+    const { data, error } = await supabase.from('mtt_roster')
+      .upsert(payload, { onConflict: 'mtt_id' })
+      .select('id');
+    if (error) throw error;
+    res.json({ success: true, imported: data?.length || 0, skipped: dataRows.length - payload.length });
+  } catch (err) {
+    console.error('Roster import error:', err);
+    res.status(500).json({ error: 'Failed to import roster.' });
+  }
+});
+
+router.get('/mtt-roster', requireRole('admin', 'super_admin'), async (req, res) => {
+  try {
+    const search = String(req.query.search || '').trim();
+    let q = supabase.from('mtt_roster').select('*, fellows(full_name, email)').order('created_at', { ascending: false }).limit(500);
+    if (search) q = q.or(`mtt_id.ilike.%${search}%,expected_name.ilike.%${search}%,expected_email.ilike.%${search}%`);
+    const { data, error } = await q;
+    if (error) throw error;
+    const { count: total } = await supabase.from('mtt_roster').select('id', { count: 'exact', head: true });
+    const { count: matched } = await supabase.from('mtt_roster').select('id', { count: 'exact', head: true }).not('matched_fellow_id', 'is', null);
+    res.json({ rows: data || [], total: total || 0, matched: matched || 0 });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to load roster.' });
+  }
+});
+
+router.delete('/mtt-roster/:id', requireRole('admin', 'super_admin'), async (req, res) => {
+  try {
+    await supabase.from('mtt_roster').delete().eq('id', req.params.id);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to remove roster entry.' });
+  }
+});
 
 // ─── WEEKLY CHECK-INS ───────────────────────────────────────────────
 router.get('/checkins', async (req, res) => {

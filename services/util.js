@@ -12,12 +12,13 @@ const PUBLIC_SETTING_KEYS = [
   'flutterwave_public_key', 'paystack_public_key',
   'adsense_enabled', 'adsense_client_id', 'adsense_slot_id',
   'monetag_enabled', 'monetag_zone_script', 'monetag_weekends_only',
+  'active_countries',
 ];
 
 // Fellow columns that are safe to return. NEVER select('*') on fellows in a response — it includes password_hash.
 const FELLOW_COLUMNS = [
   'id', 'full_name', 'email', 'phone', 'state', 'gender', 'date_of_birth',
-  'epayybillz_user_id', 'track_id', 'cohort_id', 'status', 'fellow_id',
+  'epayybillz_user_id', 'mtt_id', 'country', 'track_id', 'cohort_id', 'status', 'fellow_id',
   'profile_photo', 'bio', 'linkedin_url', 'github_url', 'points',
   'payment_verified', 'payment_reference', 'payment_provider',
   'mentor_id', 'mentor_assigned_at', 'email_notifications',

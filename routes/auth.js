@@ -72,6 +72,7 @@ router.post('/register', async (req, res) => {
       .insert({
         full_name, email,
         phone: cleanText(b.phone, 40) || null,
+        country: cleanText(b.country, 60) || 'Nigeria',
         state: cleanText(b.state, 60) || null,
         gender: cleanText(b.gender, 20) || null,
         date_of_birth: b.date_of_birth || null,
