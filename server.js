@@ -35,6 +35,7 @@ app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use(cookieParser());
 app.use(sec.idempotencyMiddleware);
 app.use('/api/admin', sec.adminAuditMiddleware);
+app.use('/api/capstone/admin', sec.adminAuditMiddleware); // capstone grading/config writes get the same audit trail
 
 // ── Rate limits on sensitive endpoints ────────────────────────────────
 app.use('/api/auth/login',       sec.authLimiter);
@@ -56,6 +57,7 @@ app.use('/api/fellows',            require('./routes/fellows'));
 app.use('/api/admin',              require('./routes/admin'));
 app.use('/api/mentor',             require('./routes/mentor'));
 app.use('/api/portfolio',          require('./routes/portfolio-public'));
+app.use('/api/capstone',           require('./routes/capstone'));
 app.use('/api/payments',           require('./routes/payments'));
 app.use('/api/certificates',       require('./routes/certificates'));
 app.use('/api/admin/certificates', require('./routes/certificates'));

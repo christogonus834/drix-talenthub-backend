@@ -146,6 +146,21 @@ const templates = {
       unsubUrl: d.unsubUrl,
     }),
   }),
+  capstone_graded: (f, d) => ({
+    subject: d.approved ? 'Your capstone project was approved! 🎉' : 'Your capstone needs revision',
+    html: layout({
+      heading: d.approved ? `Capstone approved — ${esc(d.grade)} 🎉` : 'Revision needed on your capstone',
+      bodyHtml: p(`Hi ${esc(f.full_name)},`)
+        + p(`Your capstone project <strong>${esc(d.title)}</strong> has been reviewed.`)
+        + (d.approved
+          ? p(`Result: <strong>${esc(d.grade)}</strong> (${esc(d.totalScore)}/100)`)
+          : p(`Total score: <strong>${esc(d.totalScore)}/100</strong> — needs at least 50 to pass.`))
+        + (d.feedback ? `<div style="background:#f4f5fb;border-left:3px solid #7C6EF7;padding:12px 14px;border-radius:6px;margin:10px 0;">${nl2br(d.feedback)}</div>` : '')
+        + (d.approved ? p('Your project may now appear on our public showcase, and you can go ahead and request your certificate.') : p('Revise your submission and resubmit whenever you\'re ready.')),
+      cta: { label: d.approved ? 'View your certificate status' : 'Revise my capstone', url: dash('/dashboard/courses#capstone') },
+      unsubUrl: d.unsubUrl,
+    }),
+  }),
   announcement: (f, d) => ({
     subject: d.title,
     html: layout({

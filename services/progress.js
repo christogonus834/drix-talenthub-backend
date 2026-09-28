@@ -127,7 +127,20 @@ async function getExamState(fellowId, trackId) {
   return { required: true, passed: !!(passed && passed.length), exam: { id: exam.id, title: exam.title } };
 }
 
-// Certificate eligibility: >= 80% lesson completion AND (if the track has an exam) the exam passed.
+// Has this fellow finished every lesson in every module (locked ones included) for this track?
+// Shared by computeNextAction (step 4/5 gating), getEligibility (certificate gate), and
+// routes/capstone.js (submission gate) so the three never drift out of sync with each other.
+function allLessonsComplete(st) {
+  return st.modules.length > 0 && st.modules.every(m => m.lessons.every(l => l.done));
+}
+async function isTrackComplete(fellowId, trackId, precomputedState = null) {
+  const st = precomputedState || await loadTrackState(fellowId, trackId);
+  const exam = await getExamState(fellowId, trackId);
+  return allLessonsComplete(st) && (!exam.required || exam.passed);
+}
+
+// Certificate eligibility: >= 80% lesson completion, exam passed (if the track has one), AND
+// (if the track has an active capstone config) an approved capstone submission.
 async function getEligibility(fellowId, precomputed = null) {
   const { data: fellow } = await supabase.from('fellows').select('track_id, tracks(name)').eq('id', fellowId).single();
   if (!fellow?.track_id) return { eligible: false, reason: 'No track assigned.' };
@@ -139,19 +152,29 @@ async function getEligibility(fellowId, precomputed = null) {
   const { data: certs } = await supabase.from('certificates').select('id').eq('fellow_id', fellowId).eq('track_id', fellow.track_id).limit(1);
   const { data: reqs } = await supabase.from('certificate_requests').select('id, status')
     .eq('fellow_id', fellowId).eq('track_id', fellow.track_id).in('status', ['pending', 'approved']).limit(1);
+  const { data: capstoneCfg } = await supabase.from('capstones').select('id').eq('track_id', fellow.track_id).eq('is_active', true).maybeSingle();
+  const { data: capSub } = capstoneCfg
+    ? await supabase.from('capstone_submissions').select('status').eq('fellow_id', fellowId).eq('track_id', fellow.track_id).maybeSingle()
+    : { data: null };
 
   const hasCert = !!(certs && certs.length);
   const pending = reqs && reqs[0];
   const scoreOk = st.percent >= CERT_MIN_SCORE;
   const examOk = !exam.required || exam.passed;
+  const capstoneRequired = !!capstoneCfg;
+  const capstoneOk = !capstoneRequired || capSub?.status === 'graded';
 
   return {
-    eligible: scoreOk && examOk && !hasCert && !pending,
+    eligible: scoreOk && examOk && capstoneOk && !hasCert && !pending,
     score: st.percent, completed: st.doneLessons, total: st.totalLessons,
     has_certificate: hasCert, has_pending_request: !!pending, pending_status: pending?.status || null,
     track_id: fellow.track_id, track_name: fellow.tracks?.name, minimum_score: CERT_MIN_SCORE,
     exam_required: exam.required, exam_passed: exam.passed,
-    reason: !scoreOk ? `You need at least ${CERT_MIN_SCORE}% lesson completion.` : !examOk ? 'You need to pass the track exam.' : null,
+    capstone_required: capstoneRequired, capstone_status: capSub?.status || null,
+    reason: !scoreOk ? `You need at least ${CERT_MIN_SCORE}% lesson completion.`
+      : !examOk ? 'You need to pass the track exam.'
+      : !capstoneOk ? (capSub?.status === 'returned' ? 'Your capstone needs revision before you can request a certificate.' : 'You need to submit and pass your capstone project.')
+      : null,
   };
 }
 
@@ -206,10 +229,25 @@ async function computeNextAction(fellowId, trackId, now = new Date()) {
   }
 
   // 4 — exam, once every module (locked ones included) has all lessons complete
-  const allComplete = st.modules.length > 0 && st.modules.every(m => m.lessons.every(l => l.done));
+  const allComplete = allLessonsComplete(st);
   const exam = await getExamState(fellowId, trackId);
   if (allComplete && exam.required && !exam.passed) {
     return { type: 'exam', title: exam.exam.title, subtitle: 'Track exam', deadline: null, action_url: '/dashboard/courses#exam', action_label: 'Take the exam' };
+  }
+
+  // 4.5 — capstone, once modules + exam are done and the track has an active capstone config
+  if (allComplete && (!exam.required || exam.passed)) {
+    const { data: capstoneCfg } = await supabase.from('capstones').select('id').eq('track_id', trackId).eq('is_active', true).maybeSingle();
+    if (capstoneCfg) {
+      const { data: capSub } = await supabase.from('capstone_submissions').select('status').eq('fellow_id', fellowId).eq('track_id', trackId).maybeSingle();
+      if (!capSub || capSub.status !== 'graded') {
+        return {
+          type: 'capstone', title: capSub?.status === 'returned' ? 'Revise your capstone' : 'Submit your capstone project',
+          subtitle: 'Final project', deadline: null, action_url: '/dashboard/courses#capstone',
+          action_label: capSub?.status === 'returned' ? 'Revise and resubmit' : 'Submit your capstone',
+        };
+      }
+    }
   }
 
   // 5 — certificate
@@ -230,5 +268,5 @@ async function computeNextAction(fellowId, trackId, now = new Date()) {
 
 module.exports = {
   CERT_MIN_SCORE, lockInfo, assignmentDeadline, canAccessTrack, loadAccessibleModule,
-  processDueUnlocks, loadTrackState, getExamState, getEligibility, computeNextAction,
+  processDueUnlocks, loadTrackState, getExamState, getEligibility, computeNextAction, isTrackComplete,
 };
