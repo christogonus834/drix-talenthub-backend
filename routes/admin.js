@@ -785,6 +785,34 @@ router.post('/admins', requireRole('super_admin'), async (req, res) => {
   }
 });
 
+router.patch('/admins/:id', requireRole('super_admin'), async (req, res) => {
+  try {
+    const updates = {};
+    if (req.body?.role !== undefined) {
+      if (!['admin', 'moderator', 'super_admin'].includes(req.body.role)) return res.status(400).json({ error: 'Invalid role.' });
+      if (req.params.id === req.admin.id && req.body.role !== 'super_admin') return res.status(400).json({ error: "You can't demote your own account." });
+      updates.role = req.body.role;
+    }
+    if (req.body?.is_active !== undefined) {
+      if (req.params.id === req.admin.id && req.body.is_active === false) return res.status(400).json({ error: 'You cannot deactivate your own account.' });
+      updates.is_active = !!req.body.is_active;
+    }
+    if (typeof req.body?.password === 'string' && req.body.password) {
+      if (req.body.password.length < 10) return res.status(400).json({ error: 'Password must be at least 10 characters.' });
+      updates.password_hash = await bcrypt.hash(req.body.password, bcryptCost);
+    }
+    if (!Object.keys(updates).length) return res.status(400).json({ error: 'Nothing to update.' });
+
+    const { data, error } = await supabase.from('admins').update(updates).eq('id', req.params.id)
+      .select('id, full_name, email, role, is_active').single();
+    if (error) throw error;
+    invalidateUser(req.params.id);
+    res.json({ success: true, data });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to update admin.' });
+  }
+});
+
 router.delete('/admins/:id', requireRole('super_admin'), async (req, res) => {
   try {
     if (req.params.id === req.admin.id) return res.status(400).json({ error: 'You cannot deactivate your own account.' });
@@ -793,6 +821,36 @@ router.delete('/admins/:id', requireRole('super_admin'), async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: 'Failed.' });
+  }
+});
+
+// ─── AUDIT LOG (super_admin only) ─────────────────────────────────────
+router.get('/audit-logs', requireRole('super_admin'), async (req, res) => {
+  try {
+    const { admin_id, search, page = 1, limit = 50 } = req.query;
+    let q = supabase.from('audit_logs').select('*', { count: 'exact' })
+      .order('created_at', { ascending: false })
+      .range((page - 1) * limit, page * limit - 1);
+    if (admin_id) q = q.eq('user_id', admin_id);
+    if (search) q = q.ilike('action', `%${String(search).replace(/[%_,()]/g, ' ').slice(0, 80)}%`);
+    const { data, error, count } = await q;
+    if (error) throw error;
+
+    // Attach each entry's admin name/email (audit_logs only stores user_id — do this in one
+    // extra query rather than per-row, since the log can run to thousands of entries).
+    const ids = [...new Set((data || []).map(r => r.user_id).filter(Boolean))];
+    let adminsById = {};
+    if (ids.length) {
+      const { data: admins } = await supabase.from('admins').select('id, full_name, email').in('id', ids);
+      adminsById = Object.fromEntries((admins || []).map(a => [a.id, a]));
+    }
+    res.json({
+      data: (data || []).map(r => ({ ...r, admin: adminsById[r.user_id] || null })),
+      count: count || 0,
+    });
+  } catch (err) {
+    console.error('Audit log fetch error:', err);
+    res.status(500).json({ error: 'Failed to load audit log.' });
   }
 });
 

@@ -36,6 +36,7 @@ app.use(cookieParser());
 app.use(sec.idempotencyMiddleware);
 app.use('/api/admin', sec.adminAuditMiddleware);
 app.use('/api/capstone/admin', sec.adminAuditMiddleware); // capstone grading/config writes get the same audit trail
+app.use('/api/exam-extract', sec.adminAuditMiddleware);   // exam-doc uploads get the same audit trail
 
 // ── Rate limits on sensitive endpoints ────────────────────────────────
 app.use('/api/auth/login',       sec.authLimiter);
@@ -67,6 +68,7 @@ app.use('/api/blog',               require('./routes/blog'));
 app.use('/api/announcements',      require('./routes/announcements'));
 app.use('/api/ai',                 sec.aiLimiter, require('./routes/ai'));
 app.use('/api/upload',             sec.uploadLimiter, require('./routes/upload'));
+app.use('/api/exam-extract',       sec.uploadLimiter, require('./routes/exam-extract'));
 
 app.get('/health', (req, res) => res.json({ status: 'ok', version: '2.3.0' }));
 app.use((req, res) => res.status(404).json({ error: 'Not found.' }));
